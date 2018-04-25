@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BluetoothLE</string>
+    <string name="scan">Buscar</string>
+    <string name="stop">Parar</string>
+    <string name="connect">Conectar a los seleccionados</string>
+    <string name="address">Dirección</string>
+    <string name="descripcion">Descripción</string>
+    <string name="connectOne">Conectar</string>
+</resources>

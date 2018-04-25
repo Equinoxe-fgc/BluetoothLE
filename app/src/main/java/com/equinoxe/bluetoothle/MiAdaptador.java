@@ -1,0 +1,97 @@
+package com.equinoxe.bluetoothle;
+
+import android.content.Context;
+import android.support.annotation.NonNull;
+import android.support.v7.widget.RecyclerView;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.TextView;
+import android.widget.Toast;
+
+
+public class MiAdaptador extends RecyclerView.Adapter<MiAdaptador.ViewHolder> {
+    private LayoutInflater inflador;
+    private BluetoothDeviceInfoList lista;
+    private MainActivity mainActivity;
+
+    private View.OnClickListener onClickListener;
+
+    public MiAdaptador(Context context, BluetoothDeviceInfoList lista, MainActivity mainActivity) {
+        this.lista = lista;
+        this.mainActivity = mainActivity;
+        inflador = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+    }
+
+    public void setOnItemClickListener(View.OnClickListener onClickListener) {
+            this.onClickListener = onClickListener;
+    }
+
+    @NonNull
+    @Override
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View v = inflador.inflate(R.layout.elemento_lista, parent, false);
+        v.setOnClickListener(onClickListener);
+        return new ViewHolder(v);
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull final MiAdaptador.ViewHolder holder, final int position) {
+        BluetoothDeviceInfo info = lista.getBluetoothDeviceInfo(position);
+
+        holder.chkSelected.setChecked(info.isSelected());
+        holder.txtDescription.setText(info.getsDescription());
+        holder.txtDescription2.setText(info.getAddress());
+
+        holder.btnConectOne.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(v.getContext(), "Botón pulsado " + position, Toast.LENGTH_SHORT).show();
+            }
+        });
+        holder.chkSelected.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                BluetoothDeviceInfo info = lista.getBluetoothDeviceInfo(position);
+                info.setSelected(holder.chkSelected.isChecked());
+
+                boolean bSomeSelected = false;
+                for (int i = 0; i < lista.getSize(); i++) {
+                    info = lista.getBluetoothDeviceInfo(i);
+                    bSomeSelected |= info.isSelected();
+                }
+                mainActivity.notifySomeSelected(bSomeSelected);
+
+                String str;
+                if (holder.chkSelected.isChecked()) {
+                    str = "Seleccionado" + position;
+                }
+                else {
+                    str = "No seleccionado" + position;
+                }
+                Toast.makeText(v.getContext(), str, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    @Override
+    public int getItemCount() {
+        return lista.getSize();
+    }
+
+    public class ViewHolder extends RecyclerView.ViewHolder {
+        public CheckBox chkSelected;
+        public TextView txtDescription, txtDescription2;
+        public Button btnConectOne;
+
+        public ViewHolder(View itemView) {
+            super(itemView);
+            chkSelected = itemView.findViewById(R.id.chkSelect);
+            txtDescription = itemView.findViewById(R.id.txtDescription);
+            txtDescription2 = itemView.findViewById(R.id.txtDescription2);
+            btnConectOne = itemView.findViewById(R.id.btnConnectOne);
+        }
+    }
+}
