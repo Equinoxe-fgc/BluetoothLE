@@ -4,7 +4,11 @@ import android.Manifest;
 import android.animation.ValueAnimator;
 import android.app.Application;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.media.browse.MediaBrowser;
 import android.os.Build;
 import android.os.CountDownTimer;
 import android.os.ParcelUuid;
@@ -29,7 +33,10 @@ import no.nordicsemi.android.support.v18.scanner.ScanFilter;
 import no.nordicsemi.android.support.v18.scanner.ScanResult;
 import no.nordicsemi.android.support.v18.scanner.ScanSettings;
 
+
 public class MainActivity extends AppCompatActivity {
+    final private String SENSORTAG_STRING = "CC2650 SensorTag";
+
     private boolean bScanning = false;
     private BluetoothLeScannerCompat scanner;
 
@@ -65,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void btnScanOnClick(View v) {
         if (bScanning) {
-            btnScan.setText(R.string.scan);
+            btnScan.setText(getString(R.string.scan));
             scanner.stopScan(mScanCallback);
 
             if (btDeviceInfoList.getSize() != 0) {
@@ -91,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
             //scanner.startScan(Arrays.asList(scanFilter), settings, mScanCallback);
             scanner.startScan(mScanCallback);
 
-            btnScan.setText(R.string.stop);
+            btnScan.setText(getString(R.string.stop));
         }
 
         bScanning = !bScanning;
@@ -119,8 +126,11 @@ public class MainActivity extends AppCompatActivity {
         public void onScanResult(int callbackType, ScanResult result) {
             BluetoothDevice device = result.getDevice();
             if (!btDeviceInfoList.isPresent(device.getAddress())) {
-                BluetoothDeviceInfo btDeviceInfo = new BluetoothDeviceInfo(false, device.getName(), device.getAddress());
-                btDeviceInfoList.addBluetoothDeviceInfo(btDeviceInfo);
+                String sName = device.getName();
+                if (sName != null && sName.compareTo(SENSORTAG_STRING) == 0) {
+                    BluetoothDeviceInfo btDeviceInfo = new BluetoothDeviceInfo(false, device.getName(), device.getAddress(), device);
+                    btDeviceInfoList.addBluetoothDeviceInfo(btDeviceInfo);
+                }
             }
         }
 
@@ -130,8 +140,10 @@ public class MainActivity extends AppCompatActivity {
                 ScanResult result = results.get(i);
                 BluetoothDevice device = result.getDevice();
 
-                BluetoothDeviceInfo btDeviceInfo = new BluetoothDeviceInfo(false, device.getName(), device.getAddress());
-                btDeviceInfoList.addBluetoothDeviceInfo(btDeviceInfo);
+                if (device.getName().compareTo(SENSORTAG_STRING) == 0) {
+                    BluetoothDeviceInfo btDeviceInfo = new BluetoothDeviceInfo(false, device.getName(), device.getAddress(), device);
+                    btDeviceInfoList.addBluetoothDeviceInfo(btDeviceInfo);
+                }
             }
         }
 
@@ -141,6 +153,9 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    public BluetoothDeviceInfoList getBtDeviceInfoList() {
+        return btDeviceInfoList;
+    }
 
     public void btnConnectClick(View v) {
 
@@ -152,4 +167,10 @@ public class MainActivity extends AppCompatActivity {
         else
             btnConnect.setVisibility(View.INVISIBLE);
     }
+
+    public void connectOne(int iPos) {
+        Intent intent = new Intent(this, Conexion.class);
+        intent.putExtra("Address", btDeviceInfoList.getBluetoothDeviceInfo(iPos).getAddress());
+        startActivity(intent);
+   }
 }

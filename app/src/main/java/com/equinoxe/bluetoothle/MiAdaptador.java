@@ -9,7 +9,6 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.TextView;
-import android.widget.Toast;
 
 
 public class MiAdaptador extends RecyclerView.Adapter<MiAdaptador.ViewHolder> {
@@ -42,13 +41,13 @@ public class MiAdaptador extends RecyclerView.Adapter<MiAdaptador.ViewHolder> {
         BluetoothDeviceInfo info = lista.getBluetoothDeviceInfo(position);
 
         holder.chkSelected.setChecked(info.isSelected());
-        holder.txtDescription.setText(info.getsDescription());
+        holder.txtDescription.setText(info.getDescription());
         holder.txtDescription2.setText(info.getAddress());
 
         holder.btnConectOne.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(v.getContext(), "Botón pulsado " + position, Toast.LENGTH_SHORT).show();
+                mainActivity.connectOne(position);
             }
         });
         holder.chkSelected.setOnClickListener(new View.OnClickListener() {
@@ -63,15 +62,6 @@ public class MiAdaptador extends RecyclerView.Adapter<MiAdaptador.ViewHolder> {
                     bSomeSelected |= info.isSelected();
                 }
                 mainActivity.notifySomeSelected(bSomeSelected);
-
-                String str;
-                if (holder.chkSelected.isChecked()) {
-                    str = "Seleccionado" + position;
-                }
-                else {
-                    str = "No seleccionado" + position;
-                }
-                Toast.makeText(v.getContext(), str, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -88,9 +78,9 @@ public class MiAdaptador extends RecyclerView.Adapter<MiAdaptador.ViewHolder> {
 
         public ViewHolder(View itemView) {
             super(itemView);
-            chkSelected = itemView.findViewById(R.id.chkSelect);
-            txtDescription = itemView.findViewById(R.id.txtDescription);
-            txtDescription2 = itemView.findViewById(R.id.txtDescription2);
+            chkSelected = itemView.findViewById(R.id.chkSelectSensorTag);
+            txtDescription = itemView.findViewById(R.id.txtSensorTagName);
+            txtDescription2 = itemView.findViewById(R.id.txtDescription);
             btnConectOne = itemView.findViewById(R.id.btnConnectOne);
         }
     }

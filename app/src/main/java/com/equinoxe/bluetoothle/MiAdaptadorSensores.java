@@ -1,0 +1,59 @@
+package com.equinoxe.bluetoothle;
+
+import android.bluetooth.BluetoothGattService;
+import android.content.Context;
+import android.support.annotation.NonNull;
+import android.support.v7.widget.RecyclerView;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.TextView;
+
+import java.util.List;
+
+
+public class MiAdaptadorSensores extends RecyclerView.Adapter<MiAdaptadorSensores.ViewHolderSensores> {
+    private LayoutInflater inflador;
+    private BluetoothServiceInfoList lista;
+
+    public MiAdaptadorSensores(Context context, BluetoothServiceInfoList lista) {
+        this.lista = lista;
+        inflador = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+    }
+
+    @NonNull
+    @Override
+    public ViewHolderSensores onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View v = inflador.inflate(R.layout.elemento_lista_sensores, parent, false);
+        return new ViewHolderSensores(v);
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull final MiAdaptadorSensores.ViewHolderSensores holder, final int position) {
+        BluetoothServiceInfo info = lista.getBluetoothServiceInfo(position);
+
+        holder.chkSensorSelected.setChecked(info.isSelected());
+        holder.txtSensorName.setText(info.getName());
+        holder.txtSensorUUID.setText(info.getUUID());
+    }
+
+    @Override
+    public int getItemCount() {
+        return lista.getSize();
+    }
+
+    public class ViewHolderSensores extends RecyclerView.ViewHolder {
+        public CheckBox chkSensorSelected;
+        public TextView txtSensorName;
+        public TextView txtSensorUUID;
+
+        public ViewHolderSensores(View itemView) {
+            super(itemView);
+            chkSensorSelected = itemView.findViewById(R.id.chkSelectSensor);
+            txtSensorName = itemView.findViewById(R.id.txtSensorName);
+            txtSensorUUID = itemView.findViewById(R.id.txtSensorUUID);
+        }
+    }
+}

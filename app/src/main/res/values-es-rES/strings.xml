@@ -7,4 +7,13 @@
     <string name="address">Dirección</string>
     <string name="descripcion">Descripción</string>
     <string name="connectOne">Conectar</string>
+    <string name="sensor_name">Sensor Name</string>
+    <string name="start">Empezar</string>
+    <string name="title_activity_conexion">Conexion</string>
+    <string name="Barometer">Barómetro</string>
+    <string name="Humidity">Humedad</string>
+    <string name="Motion">Movimiento</string>
+    <string name="Light">Luz</string>
+    <string name="Temperature">Temperatura</string>
+    <string name="Period">Periodo de refresco (ms):</string>
 </resources>

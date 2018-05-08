@@ -6,4 +6,13 @@
     <string name="address">Address</string>
     <string name="descripcion">Descripción</string>
     <string name="connectOne">Connect</string>
+    <string name="title_activity_conexion">Connection</string>
+    <string name="sensor_name">Sensor Name</string>
+    <string name="start">Start</string>
+    <string name="Humidity">Humidity</string>
+    <string name="Barometer">Barometer</string>
+    <string name="Motion">Motion</string>
+    <string name="Light">Light</string>
+    <string name="Temperature">Temperature</string>
+    <string name="Period">Refresh period (ms):</string>
 </resources>

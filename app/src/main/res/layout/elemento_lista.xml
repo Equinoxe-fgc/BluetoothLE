@@ -4,25 +4,25 @@
     android:layout_height="48dp">
 
     <CheckBox
-        android:id="@+id/chkSelect"
+        android:id="@+id/chkSelectSensorTag"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:gravity="left|center_vertical" />
 
     <TextView
-        android:id="@+id/txtDescription"
+        android:id="@+id/txtSensorTagName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_toRightOf="@+id/chkSelect"
+        android:layout_toRightOf="@+id/chkSelectSensorTag"
         android:gravity="center_vertical"
         android:text="@string/address" />
 
     <TextView
-        android:id="@+id/txtDescription2"
+        android:id="@+id/txtDescription"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        android:layout_below="@+id/txtDescription"
-        android:layout_toRightOf="@+id/chkSelect"
+        android:layout_below="@+id/txtSensorTagName"
+        android:layout_toRightOf="@+id/chkSelectSensorTag"
         android:gravity="center_vertical"
         android:text="@string/descripcion" />
 
