@@ -6,12 +6,16 @@ import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
+
 import java.util.List;
 
 
@@ -20,8 +24,10 @@ public class Conexion extends AppCompatActivity {
     List<BluetoothGattService> listServices;
     BluetoothServiceInfoList listaServicesInfo;
     private final Handler handler = new Handler();
+    String sAddress1;
 
     private Button btnStart;
+    private TextView txtPeriodo;
     private RecyclerView recyclerViewSensores;
     private MiAdaptadorSensores adaptadorSensores;
     private RecyclerView.LayoutManager layoutManager;
@@ -34,6 +40,7 @@ public class Conexion extends AppCompatActivity {
 
         recyclerViewSensores = findViewById(R.id.recyclerViewSensores);
         btnStart = findViewById(R.id.btnStart);
+        txtPeriodo = findViewById(R.id.txtPeriodo);
 
         listaServicesInfo = new BluetoothServiceInfoList();
 
@@ -44,11 +51,12 @@ public class Conexion extends AppCompatActivity {
         BluetoothAdapter adapter = manager.getAdapter();
 
         Bundle extras = getIntent().getExtras();
-        String sAddress = extras.getString("Address");
+        sAddress1 = extras.getString("Address");
 
-        BluetoothDevice device = adapter.getRemoteDevice(sAddress);
+        BluetoothDevice device = adapter.getRemoteDevice(sAddress1);
 
         btGatt = device.connectGatt(this, false, mBluetoothGattCallback);
+        ContenedorBluetooth.setInstance(btGatt);
 
         handler.removeCallbacks(sendUpdatesToUI);
     }
@@ -78,15 +86,15 @@ public class Conexion extends AppCompatActivity {
     String getServiceName(String UUID) {
         String sServiceName = "";
 
-        if (UUID.compareToIgnoreCase(UUIDs.UUID_Barometer) == 0)
+        if (UUID.compareToIgnoreCase(UUIDs.UUID_BAR_SERV.toString()) == 0)
             sServiceName = getString(R.string.Barometer);
-        else if (UUID.compareToIgnoreCase(UUIDs.UUID_Humidity) == 0)
+        else if (UUID.compareToIgnoreCase(UUIDs.UUID_HUM_SERV.toString()) == 0)
             sServiceName = getString(R.string.Humidity);
-        else if (UUID.compareToIgnoreCase(UUIDs.UUID_Light) == 0)
+        else if (UUID.compareToIgnoreCase(UUIDs.UUID_OPT_SERV.toString()) == 0)
             sServiceName = getString(R.string.Light);
-        else if (UUID.compareToIgnoreCase(UUIDs.UUID_Motion) == 0)
+        else if (UUID.compareToIgnoreCase(UUIDs.UUID_MOV_SERV.toString()) == 0)
             sServiceName = getString(R.string.Motion);
-        else if (UUID.compareToIgnoreCase(UUIDs.UUID_Temperature) == 0)
+        else if (UUID.compareToIgnoreCase(UUIDs.UUID_GYR_SERV.toString()) == 0)
             sServiceName = getString(R.string.Temperature);
 
         return sServiceName;
@@ -110,4 +118,18 @@ public class Conexion extends AppCompatActivity {
             }
         }
     };
+
+    public void onStartData(View v) {
+        btGatt.disconnect();
+        btGatt.close();
+
+        Intent intent = new Intent(this, Datos.class);
+        intent.putExtra("Address1", sAddress1);
+        intent.putExtra("Periodo", Integer.valueOf(txtPeriodo.getText().toString()));
+        intent.putExtra("Humedad", listaServicesInfo.getBluetoothServiceInfo(0).isSelected());
+        intent.putExtra("Barometro", listaServicesInfo.getBluetoothServiceInfo(1).isSelected());
+        intent.putExtra("Luz", listaServicesInfo.getBluetoothServiceInfo(2).isSelected());
+        intent.putExtra("Movimiento", listaServicesInfo.getBluetoothServiceInfo(3).isSelected());
+        startActivity(intent);
+    }
 }

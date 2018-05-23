@@ -15,4 +15,6 @@
     <string name="Light">Light</string>
     <string name="Temperature">Temperature</string>
     <string name="Period">Refresh period (ms):</string>
+    <string name="HumidityUnity">%rH</string>
+    <string name="BarometerUnit">mBar</string>
 </resources>

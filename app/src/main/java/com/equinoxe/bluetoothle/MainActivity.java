@@ -6,11 +6,13 @@ import android.app.Application;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattService;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.browse.MediaBrowser;
 import android.os.Build;
 import android.os.CountDownTimer;
+import android.os.Handler;
 import android.os.ParcelUuid;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -44,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private MiAdaptador adaptador;
     private RecyclerView.LayoutManager layoutManager;
+    private final Handler handler = new Handler();
 
     private BluetoothDeviceInfoList btDeviceInfoList;
 
@@ -98,11 +101,23 @@ public class MainActivity extends AppCompatActivity {
             //scanner.startScan(Arrays.asList(scanFilter), settings, mScanCallback);
             scanner.startScan(mScanCallback);
 
+            //handler.removeCallbacks(sendUpdatesToUI);
+
             btnScan.setText(getString(R.string.stop));
         }
 
         bScanning = !bScanning;
     }
+
+    /*private Runnable sendUpdatesToUI = new Runnable() {
+        public void run() {
+            if (btDeviceInfoList.getSize() != 0) {
+                recyclerView.setAdapter(adaptador);
+                recyclerView.setLayoutManager(layoutManager);
+            } else
+                handler.postDelayed(this, 1000); // 1 seconds
+        }
+    };*/
 
     private void checkForPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {  // Only ask for these permissions on runtime when running Android 6.0 or higher

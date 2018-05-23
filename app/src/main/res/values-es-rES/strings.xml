@@ -16,4 +16,6 @@
     <string name="Light">Luz</string>
     <string name="Temperature">Temperatura</string>
     <string name="Period">Periodo de refresco (ms):</string>
+    <string name="HumidityUnity">%rH</string>
+    <string name="BarometerUnit">mBar</string>
 </resources>

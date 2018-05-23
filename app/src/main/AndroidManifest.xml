@@ -24,6 +24,10 @@
             android:name=".Conexion"
             android:label="@string/title_activity_conexion"
             android:theme="@style/AppTheme.NoActionBar"></activity>
+        <activity
+            android:name=".Datos"
+            android:label="Datos"
+            android:theme="@style/AppTheme.NoActionBar"></activity>
     </application>
 
 </manifest>
