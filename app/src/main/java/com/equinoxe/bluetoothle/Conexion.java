@@ -69,8 +69,24 @@ public class Conexion extends AppCompatActivity {
                 if (service != null) {
                     String sServiceName = getServiceName(service.getUuid().toString());
                     if (sServiceName.length() != 0) {
-                        BluetoothServiceInfo serviceInfo = new BluetoothServiceInfo(true, sServiceName, service.getUuid().toString());
-                        listaServicesInfo.addBluetoothServiceInfo(serviceInfo);
+                        BluetoothServiceInfo serviceInfo;
+
+                        if (sServiceName.compareTo(getString(R.string.Motion)) != 0) {
+                            serviceInfo = new BluetoothServiceInfo(true, sServiceName, service.getUuid().toString());
+                            listaServicesInfo.addBluetoothServiceInfo(serviceInfo);
+                        }
+
+                        if (sServiceName.compareTo(getString(R.string.Barometer)) == 0) {   // El servicio de barómetro también tiene el de temperatura
+                            serviceInfo = new BluetoothServiceInfo(true, getString(R.string.Temperature), service.getUuid().toString());
+                            listaServicesInfo.addBluetoothServiceInfo(serviceInfo);
+                        } else if (sServiceName.compareTo(getString(R.string.Motion)) == 0) {   // El servicio de movimiento tiene giróscopo, acelerómetro y magnetómetro
+                            serviceInfo = new BluetoothServiceInfo(true, getString(R.string.Gyroscope), service.getUuid().toString());
+                            listaServicesInfo.addBluetoothServiceInfo(serviceInfo);
+                            serviceInfo = new BluetoothServiceInfo(true, getString(R.string.Accelerometer), service.getUuid().toString());
+                            listaServicesInfo.addBluetoothServiceInfo(serviceInfo);
+                            serviceInfo = new BluetoothServiceInfo(true, getString(R.string.Magnetometer), service.getUuid().toString());
+                            listaServicesInfo.addBluetoothServiceInfo(serviceInfo);
+                        }
                     }
                 }
             }
@@ -94,8 +110,6 @@ public class Conexion extends AppCompatActivity {
             sServiceName = getString(R.string.Light);
         else if (UUID.compareToIgnoreCase(UUIDs.UUID_MOV_SERV.toString()) == 0)
             sServiceName = getString(R.string.Motion);
-        else if (UUID.compareToIgnoreCase(UUIDs.UUID_GYR_SERV.toString()) == 0)
-            sServiceName = getString(R.string.Temperature);
 
         return sServiceName;
     }
@@ -126,10 +140,27 @@ public class Conexion extends AppCompatActivity {
         Intent intent = new Intent(this, Datos.class);
         intent.putExtra("Address1", sAddress1);
         intent.putExtra("Periodo", Integer.valueOf(txtPeriodo.getText().toString()));
-        intent.putExtra("Humedad", listaServicesInfo.getBluetoothServiceInfo(0).isSelected());
-        intent.putExtra("Barometro", listaServicesInfo.getBluetoothServiceInfo(1).isSelected());
-        intent.putExtra("Luz", listaServicesInfo.getBluetoothServiceInfo(2).isSelected());
-        intent.putExtra("Movimiento", listaServicesInfo.getBluetoothServiceInfo(3).isSelected());
+
+        for (int i = 0; i < listaServicesInfo.getSize(); i++) {
+            BluetoothServiceInfo serviceInfo = listaServicesInfo.getBluetoothServiceInfo(i);
+            String sName = serviceInfo.getName();
+
+            if (sName.compareTo(getString(R.string.Humidity)) == 0)
+                intent.putExtra("Humedad", serviceInfo.isSelected());
+            else if (sName.compareTo(getString(R.string.Barometer)) == 0)
+                intent.putExtra("Barometro", serviceInfo.isSelected());
+            else if (sName.compareTo(getString(R.string.Light)) == 0)
+                intent.putExtra("Luz", serviceInfo.isSelected());
+            else if (sName.compareTo(getString(R.string.Temperature)) == 0)
+                intent.putExtra("Temperatura", serviceInfo.isSelected());
+            else if (sName.compareTo(getString(R.string.Gyroscope)) == 0)
+                intent.putExtra("Giroscopo", serviceInfo.isSelected());
+            else if (sName.compareTo(getString(R.string.Accelerometer)) == 0)
+                intent.putExtra("Acelerometro", serviceInfo.isSelected());
+            else if (sName.compareTo(getString(R.string.Magnetometer)) == 0)
+                intent.putExtra("Magnetometro", serviceInfo.isSelected());
+        }
+
         startActivity(intent);
     }
 }

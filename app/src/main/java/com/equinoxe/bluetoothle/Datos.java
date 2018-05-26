@@ -13,12 +13,15 @@ import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
+import static android.bluetooth.BluetoothGattCharacteristic.FORMAT_SINT8;
 
 
 public class Datos extends AppCompatActivity {
@@ -32,7 +35,7 @@ public class Datos extends AppCompatActivity {
     private MiAdaptadorDatos adaptadorDatos;
     private RecyclerView.LayoutManager layoutManager;
 
-    private boolean bHumedad, bBarometro, bLuz, bMovimiento;
+    private boolean bHumedad, bBarometro, bLuz, bTemperatura, bAcelerometro, bGiroscopo, bMagnetometro;
     private int iPeriodo;
 
     byte barometro[] = new byte[6];
@@ -49,7 +52,10 @@ public class Datos extends AppCompatActivity {
         bHumedad = extras.getBoolean("Humedad");
         bBarometro = extras.getBoolean("Barometro");
         bLuz = extras.getBoolean("Luz");
-        bMovimiento = extras.getBoolean("Movimiento");
+        bTemperatura = extras.getBoolean("Temperatura");
+        bAcelerometro = extras.getBoolean("Acelerometro");
+        bGiroscopo = extras.getBoolean("Giroscopo");
+        bMagnetometro = extras.getBoolean("Magnetometro");
 
         recyclerViewDatos = findViewById(R.id.recycler_viewDatos);
         btnStopDatos = findViewById(R.id.btnStopDatos);
@@ -79,13 +85,22 @@ public class Datos extends AppCompatActivity {
         }
     };
 
-    public void setBarometro (byte barometro[]){
-        adaptadorDatos.setBarometro(0,barometro.toString());
-        adaptadorDatos.notifyDataSetChanged();
+    @Override
+    public void onBackPressed() {
+        btGatt.disconnect();
+        btGatt.close();
+
+        super.onBackPressed();
+    }
+
+    public  void btnPararClick(View v) {
+        btGatt.disconnect();
+        btGatt.close();
+
+        finish();
     }
 
     private final BluetoothGattCallback mBluetoothGattCallback;
-
     {
         mBluetoothGattCallback = new BluetoothGattCallback() {
             @Override
@@ -101,17 +116,20 @@ public class Datos extends AppCompatActivity {
             public void onServicesDiscovered(BluetoothGatt gatt, int status) {
                 super.onServicesDiscovered(gatt, status);
 
-                BluetoothGattService service = btGatt.getService(UUIDs.UUID_BAR_SERV);
-                BluetoothGattCharacteristic characteristic = service.getCharacteristic(UUIDs.UUID_BAR_DATA);
-                        /*List<BluetoothGattDescriptor> descriptors = new ArrayList<BluetoothGattDescriptor>();
-                        descriptors = characteristic.getDescriptors();*/
+                BluetoothGattService service;
+                BluetoothGattCharacteristic characteristic;
+                BluetoothGattDescriptor descriptor;
 
-                gatt.setCharacteristicNotification(characteristic, true);
+                if (bBarometro) {
+                    service = btGatt.getService(UUIDs.UUID_BAR_SERV);
+                    characteristic = service.getCharacteristic(UUIDs.UUID_BAR_DATA);
+                    gatt.setCharacteristicNotification(characteristic, true);
 
-                //BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUIDs.convertFromInteger(0x2902));
-                BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"));
-                descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                btGatt.writeDescriptor(descriptor);
+                    descriptor = characteristic.getDescriptor(UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"));
+                    descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                    btGatt.writeDescriptor(descriptor);
+                }
+
 
             }
 
@@ -120,10 +138,15 @@ public class Datos extends AppCompatActivity {
                 super.onDescriptorWrite(gatt, descriptor, status);
 
                 if (status == BluetoothGatt.GATT_SUCCESS) {
-                    BluetoothGattCharacteristic characteristic = btGatt.getService(UUIDs.UUID_BAR_SERV).getCharacteristic(UUIDs.UUID_BAR_CONF);
-                    characteristic.setValue(new byte[]{1});
-                    btGatt.writeCharacteristic(characteristic);
-                    //btGatt.readCharacteristic(characteristic);
+                    if (bBarometro) {
+                        BluetoothGattCharacteristic characteristic = btGatt.getService(UUIDs.UUID_BAR_SERV).getCharacteristic(UUIDs.UUID_BAR_CONF);
+                        characteristic.setValue(new byte[]{1});
+                        boolean bOK = btGatt.writeCharacteristic(characteristic);
+
+                        characteristic = btGatt.getService(UUIDs.UUID_BAR_SERV).getCharacteristic(UUIDs.UUID_BAR_PERI);
+                        characteristic.setValue(iPeriodo * 11 / 110, FORMAT_SINT8, 0);
+                        bOK = btGatt.writeCharacteristic(characteristic);
+                    }
                 }
             }
 
@@ -131,10 +154,15 @@ public class Datos extends AppCompatActivity {
             public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
                 super.onCharacteristicWrite(gatt, characteristic, status);
 
-                btGatt.readCharacteristic(characteristic);
-            }
+                /*characteristic = btGatt.getService(UUIDs.UUID_BAR_SERV).getCharacteristic(UUIDs.UUID_BAR_CONF);
+                characteristic.setValue(new byte[]{1});
+                btGatt.writeCharacteristic(characteristic);
 
-            @Override
+                //btGatt.readCharacteristic(characteristic);
+                barometro = characteristic.getValue();
+            }*/
+
+            /*@Override
             public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
                 super.onCharacteristicRead(gatt, characteristic, status);
 
@@ -152,9 +180,6 @@ public class Datos extends AppCompatActivity {
                 super.onCharacteristicChanged(gatt, characteristic);
 
                 barometro = characteristic.getValue();
-                setBarometro(barometro);
-                //listaDatos.setBarometro(0, barometro.toString());
-                //adaptadorDatos.notifyItemChanged(0);
             }
         };
     }

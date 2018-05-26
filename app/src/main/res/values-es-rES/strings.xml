@@ -15,7 +15,10 @@
     <string name="Motion">Movimiento</string>
     <string name="Light">Luz</string>
     <string name="Temperature">Temperatura</string>
-    <string name="Period">Periodo de refresco (ms):</string>
+    <string name="Period">Periodo de refresco (100ms - 2500ms):</string>
     <string name="HumidityUnity">%rH</string>
     <string name="BarometerUnit">mBar</string>
+    <string name="Gyroscope">Giróscopo</string>
+    <string name="Accelerometer">Acelerómetro</string>
+    <string name="Magnetometer">Magnetómetro</string>
 </resources>

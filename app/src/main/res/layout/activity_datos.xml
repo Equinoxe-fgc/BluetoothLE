@@ -13,6 +13,6 @@
         android:id="@+id/btnStopDatos"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:onClick="btnConnectClick"
+        android:onClick="btnPararClick"
         android:text="@string/stop" />
 </LinearLayout>
