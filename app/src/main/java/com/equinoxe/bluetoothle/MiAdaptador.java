@@ -16,7 +16,7 @@ public class MiAdaptador extends RecyclerView.Adapter<MiAdaptador.ViewHolder> {
     private BluetoothDeviceInfoList lista;
     private MainActivity mainActivity;
 
-    private View.OnClickListener onClickListener;
+    //private View.OnClickListener onClickListener;
 
     public MiAdaptador(Context context, BluetoothDeviceInfoList lista, MainActivity mainActivity) {
         this.lista = lista;
@@ -24,15 +24,15 @@ public class MiAdaptador extends RecyclerView.Adapter<MiAdaptador.ViewHolder> {
         inflador = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
     }
 
-    public void setOnItemClickListener(View.OnClickListener onClickListener) {
+    /*public void setOnItemClickListener(View.OnClickListener onClickListener) {
             this.onClickListener = onClickListener;
-    }
+    }*/
 
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View v = inflador.inflate(R.layout.elemento_lista, parent, false);
-        v.setOnClickListener(onClickListener);
+        //v.setOnClickListener(onClickListener);
         return new ViewHolder(v);
     }
 

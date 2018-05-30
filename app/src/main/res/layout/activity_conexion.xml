@@ -4,12 +4,12 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <android.support.v7.widget.RecyclerView
-        android:id="@+id/recyclerViewSensores"
+    <Button
+        android:id="@+id/btnStart"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
-    </android.support.v7.widget.RecyclerView>
+        android:layout_height="wrap_content"
+        android:onClick="onStartData"
+        android:text="@string/start" />
 
     <TextView
         android:id="@+id/textView"
@@ -26,11 +26,11 @@
         android:inputType="number"
         android:text="1000" />
 
-    <Button
-        android:id="@+id/btnStart"
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/recyclerViewSensores"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:onClick="onStartData"
-        android:text="@string/start" />
+        android:layout_height="wrap_content">
+
+    </android.support.v7.widget.RecyclerView>
 
 </LinearLayout>

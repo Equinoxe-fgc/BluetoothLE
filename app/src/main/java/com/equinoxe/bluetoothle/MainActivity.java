@@ -46,11 +46,9 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private MiAdaptador adaptador;
     private RecyclerView.LayoutManager layoutManager;
-    private final Handler handler = new Handler();
+    //private final Handler handler = new Handler();
 
     private BluetoothDeviceInfoList btDeviceInfoList;
-
-    private UUID SERVICE_UUID;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,18 +57,18 @@ public class MainActivity extends AppCompatActivity {
 
         btDeviceInfoList = new BluetoothDeviceInfoList();
 
-        btnScan = (Button)findViewById(R.id.btnScan);
-        btnConnect = (Button)findViewById(R.id.btnConnect);
-        recyclerView = (RecyclerView)findViewById(R.id.recycler_view);
+        btnScan = findViewById(R.id.btnScan);
+        btnConnect = findViewById(R.id.btnConnect);
+        recyclerView = findViewById(R.id.recycler_view);
 
         adaptador = new MiAdaptador(this, btDeviceInfoList, this);
         layoutManager = new LinearLayoutManager(this);
-        adaptador.setOnItemClickListener(new View.OnClickListener() {
+        /*adaptador.setOnItemClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Toast.makeText(MainActivity.this, "elemento " + recyclerView.getChildAdapterPosition(v), Toast.LENGTH_LONG).show();
             }
-        });
+        });*/
     }
 
     public void btnScanOnClick(View v) {
@@ -93,12 +91,7 @@ public class MainActivity extends AppCompatActivity {
                     .setReportDelay(1000)
                     .build();
 
-            SERVICE_UUID = UUID.fromString("b993bf90-81e1-11e4-b4a9-0800200c9a66");
-            // We only want to scan for devices advertising our custom service
-            ScanFilter scanFilter = new ScanFilter.Builder()
-                .setServiceUuid(new ParcelUuid(SERVICE_UUID)).build();
             checkForPermissions();
-            //scanner.startScan(Arrays.asList(scanFilter), settings, mScanCallback);
             scanner.startScan(mScanCallback);
 
             //handler.removeCallbacks(sendUpdatesToUI);
@@ -145,19 +138,7 @@ public class MainActivity extends AppCompatActivity {
                 if (sName != null && sName.compareTo(SENSORTAG_STRING) == 0) {
                     BluetoothDeviceInfo btDeviceInfo = new BluetoothDeviceInfo(false, device.getName(), device.getAddress(), device);
                     btDeviceInfoList.addBluetoothDeviceInfo(btDeviceInfo);
-                }
-            }
-        }
-
-        @Override
-        public void onBatchScanResults(List<ScanResult> results) {
-            for (int i = 0; i < results.size(); i++) {
-                ScanResult result = results.get(i);
-                BluetoothDevice device = result.getDevice();
-
-                if (device.getName().compareTo(SENSORTAG_STRING) == 0) {
-                    BluetoothDeviceInfo btDeviceInfo = new BluetoothDeviceInfo(false, device.getName(), device.getAddress(), device);
-                    btDeviceInfoList.addBluetoothDeviceInfo(btDeviceInfo);
+                    btnScanOnClick(null);
                 }
             }
         }

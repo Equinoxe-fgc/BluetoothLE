@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import java.util.List;
@@ -37,6 +38,13 @@ public class MiAdaptadorSensores extends RecyclerView.Adapter<MiAdaptadorSensore
         holder.chkSensorSelected.setChecked(info.isSelected());
         holder.txtSensorName.setText(info.getName());
         holder.txtSensorUUID.setText(info.getUUID());
+
+        holder.chkSensorSelected.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                lista.getBluetoothServiceInfo(position).setSelected(b);
+            }
+        });
     }
 
     @Override

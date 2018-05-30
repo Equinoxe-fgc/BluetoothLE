@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">BluetoothLE</string>
+    <string name="app_name">BluetoothLE Sensors</string>
     <string name="scan">Scan</string>
     <string name="stop">Stop</string>
     <string name="connect">Connect all selected</string>
@@ -14,10 +14,15 @@
     <string name="Motion">Motion</string>
     <string name="Light">Light</string>
     <string name="Temperature">Temperature</string>
-    <string name="Period">Refresh period (100ms - 2500ms):</string>
-    <string name="HumidityUnity">%rH</string>
+    <string name="Period">Refresh period (100ms - 2550ms):</string>
+    <string name="HumidityUnit">%rH</string>
     <string name="BarometerUnit">mBar</string>
     <string name="Gyroscope">Gyroscope</string>
     <string name="Accelerometer">Accelerometer</string>
     <string name="Magnetometer">Magnetometer</string>
+    <string name="LightUnit">Lux</string>
+    <string name="AccelerometerUnit">G</string>
+    <string name="GyroscopeUnit">º/s</string>
+    <string name="MagnetometerUnit">uT</string>
+    <string name="TemperatureUnit">ºC</string>
 </resources>

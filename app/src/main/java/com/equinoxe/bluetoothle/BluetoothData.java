@@ -4,14 +4,16 @@ public class BluetoothData {
     private String sHumedad;
     private String sBarometro;
     private String sLuz;
+    private String sTemperatura;
     private String sMovimiento1;
     private String sMovimiento2;
     private String sMovimiento3;
 
-    public BluetoothData(String sHumedad, String sBarometro, String sLuz, String sMovimiento1, String sMovimiento2, String sMovimiento3) {
+    public BluetoothData(String sHumedad, String sBarometro, String sLuz, String sTemperatura, String sMovimiento1, String sMovimiento2, String sMovimiento3) {
         this.sHumedad = sHumedad;
         this.sBarometro = sBarometro;
         this.sLuz = sLuz;
+        this.sTemperatura = sTemperatura;
         this.sMovimiento1 = sMovimiento1;
         this.sMovimiento2 = sMovimiento2;
         this.sMovimiento3 = sMovimiento3;
@@ -21,6 +23,7 @@ public class BluetoothData {
         this.sHumedad = "";
         this.sBarometro = "";
         this.sLuz = "";
+        this.sTemperatura = "";
         this.sMovimiento1 = "";
         this.sMovimiento2 = "";
         this.sMovimiento3 = "";
@@ -36,6 +39,10 @@ public class BluetoothData {
 
     public String getLuz() {
         return sLuz;
+    }
+
+    public String getTemperatura() {
+        return sTemperatura;
     }
 
     public String getMovimiento1() {
@@ -60,6 +67,10 @@ public class BluetoothData {
 
     public void setLuz(String sLuz) {
         this.sLuz = sLuz;
+    }
+
+    public void setTemperatura(String sTemperatura) {
+        this.sTemperatura = sTemperatura;
     }
 
     public void setMovimiento1(String sMovimiento1) {

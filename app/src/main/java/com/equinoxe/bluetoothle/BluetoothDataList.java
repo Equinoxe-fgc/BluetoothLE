@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BluetoothDataList {
-    protected List<BluetoothData> vectorData;
+    private List<BluetoothData> vectorData;
 
     public BluetoothDataList(int iSize) {
         this.vectorData = new ArrayList<BluetoothData>();
@@ -34,6 +34,10 @@ public class BluetoothDataList {
 
     public void setLuz(int iPos, String sLuz) {
         vectorData.get(iPos).setLuz(sLuz);
+    }
+
+    public void setTemperatura(int iPos, String sTemperatura) {
+        vectorData.get(iPos).setTemperatura(sTemperatura);
     }
 
     public void setMovimiento1(int iPos, String sMovimiento1) {
