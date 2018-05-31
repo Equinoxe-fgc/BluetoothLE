@@ -1,5 +1,7 @@
 package com.equinoxe.bluetoothle;
 
+import android.Manifest;
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -9,17 +11,29 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
+import android.os.BatteryManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.Toast;
 
 
+import java.io.FileOutputStream;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -27,6 +41,8 @@ import static android.bluetooth.BluetoothGattCharacteristic.FORMAT_SINT8;
 
 
 public class Datos extends AppCompatActivity {
+    final static long lTiempoMedidas = 8*60*60*1000;  // 8 horas * 60 minutos * 60 segundos * 1000 milisegundos - Tiempo de muestra en milisegundos
+
     BluetoothGatt btGatt;
     BluetoothDataList listaDatos;
     //private final Handler handler = new Handler();
@@ -62,6 +78,7 @@ public class Datos extends AppCompatActivity {
 
     Context context;
     Handler handler;
+    long iContadorSegundos;
 
     DecimalFormat df;
 
@@ -71,7 +88,8 @@ public class Datos extends AppCompatActivity {
         setContentView(R.layout.activity_datos);
 
         context = this;
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        iContadorSegundos = 2000;   // Poner un número de segundos muy grande para que no se pare antes de que arranque
+        //getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         df = new DecimalFormat("###.##");
 
@@ -114,8 +132,14 @@ public class Datos extends AppCompatActivity {
         runOnUiThread(new Runnable(){
             @Override
             public void run(){
-                adaptadorDatos1.notifyItemChanged(0);
-                handler.postDelayed(this, iPeriodo);
+                iContadorSegundos--;
+
+                if (iContadorSegundos <= 0)
+                    btnPararClick(btnStopDatos);
+                else {
+                    adaptadorDatos1.notifyItemChanged(0);
+                    handler.postDelayed(this, iPeriodo);
+                }
             }
         });
     }
@@ -130,10 +154,48 @@ public class Datos extends AppCompatActivity {
     }
 
     public  void btnPararClick(View v) {
+        IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        Intent batteryStatus = context.registerReceiver(null, ifilter);
+        int iBatteryLevel = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+
+        verifyStoragePermissions(this);
+
+        //Toast.makeText(this, "Nivel de batería:" + iBatteryLevel + " %", Toast.LENGTH_LONG).show();
+        String sCadena;
+        String sFichero = Environment.getExternalStorageDirectory() + "/simulBT_BAT.txt";
+        try {
+            FileOutputStream f = new FileOutputStream(sFichero, true);
+
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
+            String currentDateandTime = sdf.format(new Date());
+
+            sCadena = iBatteryLevel + " : " + currentDateandTime + "\n";
+            f.write(sCadena.getBytes());
+            f.close();
+        } catch (Exception e) {
+            Log.e("Fichero de resultados", e.getMessage(), e);
+        }
+
         btGatt.disconnect();
         btGatt.close();
 
         finish();
+    }
+
+    public static void verifyStoragePermissions(Activity activity) {
+        // Check if we have write permission
+        String[] PERMISSIONS_STORAGE = {
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+        };
+
+        if (Build.VERSION.SDK_INT >= 23) {
+            int permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+            if (permission != PackageManager.PERMISSION_GRANTED) {
+                // We don't have permission so prompt the user
+                ActivityCompat.requestPermissions(activity, PERMISSIONS_STORAGE, 1);
+            }
+        }
     }
 
     private final BluetoothGattCallback mBluetoothGattCallback;
@@ -193,6 +255,8 @@ public class Datos extends AppCompatActivity {
                         bActivacion[firstActivar] = false;
 
                         activarServicio(gatt, firstActivar);
+
+                        iContadorSegundos = lTiempoMedidas / iPeriodo;
                     }
                 }
             }

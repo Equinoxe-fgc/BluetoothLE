@@ -46,9 +46,11 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private MiAdaptador adaptador;
     private RecyclerView.LayoutManager layoutManager;
-    //private final Handler handler = new Handler();
+    private final Handler handler = new Handler();
 
     private BluetoothDeviceInfoList btDeviceInfoList;
+
+    private int iContador;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,12 +65,23 @@ public class MainActivity extends AppCompatActivity {
 
         adaptador = new MiAdaptador(this, btDeviceInfoList, this);
         layoutManager = new LinearLayoutManager(this);
-        /*adaptador.setOnItemClickListener(new View.OnClickListener() {
+
+        iContador = 0;
+        runOnUiThread(new Runnable(){
             @Override
-            public void onClick(View v) {
-                Toast.makeText(MainActivity.this, "elemento " + recyclerView.getChildAdapterPosition(v), Toast.LENGTH_LONG).show();
+            public void run(){
+                if (bScanning) {
+                    iContador++;
+                    if (btDeviceInfoList.getSize() != 0)
+                        adaptador.notifyDataSetChanged();
+                    if (iContador == 4)
+                        btnScanOnClick(btnScan);
+                } else
+                    iContador = 0;
+
+                handler.postDelayed(this, 1000);
             }
-        });*/
+        });
     }
 
     public void btnScanOnClick(View v) {
@@ -82,6 +95,7 @@ public class MainActivity extends AppCompatActivity {
             }
         } else {
             btDeviceInfoList.clearAllBluetoothDeviceInfo();
+            adaptador.notifyDataSetChanged();
 
             scanner = BluetoothLeScannerCompat.getScanner();
 
@@ -138,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
                 if (sName != null && sName.compareTo(SENSORTAG_STRING) == 0) {
                     BluetoothDeviceInfo btDeviceInfo = new BluetoothDeviceInfo(false, device.getName(), device.getAddress(), device);
                     btDeviceInfoList.addBluetoothDeviceInfo(btDeviceInfo);
-                    btnScanOnClick(null);
+                    //btnScanOnClick(null);
                 }
             }
         }
