@@ -79,6 +79,8 @@ public class Datos extends AppCompatActivity {
     Context context;
     Handler handler;
     long iContadorSegundos;
+    int iBatteryLevelStart;
+    Date dateStart;
 
     DecimalFormat df;
 
@@ -121,8 +123,12 @@ public class Datos extends AppCompatActivity {
         recyclerViewDatos.setAdapter(adaptadorDatos1);
         recyclerViewDatos.setLayoutManager(layoutManager);
 
-        String sAddress1 = extras.getString("Address1");
+        IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        Intent batteryStatus = context.registerReceiver(null, ifilter);
+        iBatteryLevelStart = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+        dateStart = new Date();
 
+        String sAddress1 = extras.getString("Address1");
         BluetoothManager manager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
         BluetoothAdapter adapter = manager.getAdapter();
         BluetoothDevice device = adapter.getRemoteDevice(sAddress1);
@@ -168,8 +174,9 @@ public class Datos extends AppCompatActivity {
 
             SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
             String currentDateandTime = sdf.format(new Date());
+            String startDateandTime = sdf.format(dateStart);
 
-            sCadena = iBatteryLevel + " : " + currentDateandTime + "\n";
+            sCadena = startDateandTime + ":" + iBatteryLevelStart + " -> " + currentDateandTime + ":" + iBatteryLevel + "\n";
             f.write(sCadena.getBytes());
             f.close();
         } catch (Exception e) {
