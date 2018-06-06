@@ -28,7 +28,6 @@ public class Conexion extends AppCompatActivity {
     int iNumDevices;
     String sAddresses[] = new String[8];
 
-    private Button btnStart;
     private TextView txtPeriodo;
     private RecyclerView recyclerViewSensores;
     private MiAdaptadorSensores adaptadorSensores;
@@ -41,7 +40,6 @@ public class Conexion extends AppCompatActivity {
         setContentView(R.layout.activity_conexion);
 
         recyclerViewSensores = findViewById(R.id.recyclerViewSensores);
-        btnStart = findViewById(R.id.btnStart);
         txtPeriodo = findViewById(R.id.txtPeriodo);
 
         listaServicesInfo = new BluetoothServiceInfoList();
@@ -60,7 +58,6 @@ public class Conexion extends AppCompatActivity {
         BluetoothDevice device = adapter.getRemoteDevice(sAddresses[0]);
 
         btGatt = device.connectGatt(this, false, mBluetoothGattCallback);
-        ContenedorBluetooth.setInstance(btGatt);
 
         handler.removeCallbacks(sendUpdatesToUI);
     }

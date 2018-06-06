@@ -6,13 +6,11 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CheckBox;
 import android.widget.TextView;
 
 public class MiAdaptadorDatos extends RecyclerView.Adapter<MiAdaptadorDatos.ViewHolderDatos> {
     private LayoutInflater inflador;
     private BluetoothDataList lista;
-    private MiAdaptadorDatos.ViewHolderDatos holderDatos;
 
     public MiAdaptadorDatos(Context context, BluetoothDataList lista) {
         this.lista = lista;
@@ -23,8 +21,7 @@ public class MiAdaptadorDatos extends RecyclerView.Adapter<MiAdaptadorDatos.View
     @Override
     public MiAdaptadorDatos.ViewHolderDatos onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View v = inflador.inflate(R.layout.elemento_lista_datos, parent, false);
-        holderDatos = new MiAdaptadorDatos.ViewHolderDatos(v);
-        return holderDatos;
+        return new MiAdaptadorDatos.ViewHolderDatos(v);
     }
 
     @Override

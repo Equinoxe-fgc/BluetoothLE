@@ -7,12 +7,10 @@ public class BluetoothDataList {
     private List<BluetoothData> vectorData;
 
     public BluetoothDataList(int iSize) {
-        this.vectorData = new ArrayList<BluetoothData>();
+        this.vectorData = new ArrayList<>();
 
-        BluetoothData bluetoothData;
         for (int i = 0; i < iSize; i++) {
-            bluetoothData = new BluetoothData();
-            vectorData.add(bluetoothData);
+            vectorData.add(new BluetoothData());
         }
     }
 

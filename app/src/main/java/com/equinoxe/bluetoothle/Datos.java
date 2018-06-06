@@ -114,10 +114,10 @@ public class Datos extends AppCompatActivity {
         bMagnetometro = extras.getBoolean("Magnetometro");
 
         for (int i = 0; i < iNumDevices; i++) {
-            bSensores[iNumDevices][0] = bActivacion[iNumDevices][0] = bAcelerometro || bGiroscopo || bMagnetometro;
-            bSensores[iNumDevices][1] = bActivacion[iNumDevices][1] = bHumedad;
-            bSensores[iNumDevices][2] = bActivacion[iNumDevices][2] = bBarometro || bTemperatura;
-            bSensores[iNumDevices][3] = bActivacion[iNumDevices][3] = bLuz;
+            bSensores[i][0] = bActivacion[i][0] = bAcelerometro || bGiroscopo || bMagnetometro;
+            bSensores[i][1] = bActivacion[i][1] = bHumedad;
+            bSensores[i][2] = bActivacion[i][2] = bBarometro || bTemperatura;
+            bSensores[i][3] = bActivacion[i][3] = bLuz;
         }
 
         recyclerViewDatos = findViewById(R.id.recycler_viewDatos);
@@ -192,7 +192,13 @@ public class Datos extends AppCompatActivity {
             String currentDateandTime = sdf.format(new Date());
             String startDateandTime = sdf.format(dateStart);
 
-            sCadena = startDateandTime + ":" + iBatteryLevelStart + " -> " + currentDateandTime + ":" + iBatteryLevel + "\n";
+            sCadena = android.os.Build.MODEL + " ";
+            sCadena += startDateandTime + ":" + iBatteryLevelStart + " -> " + currentDateandTime + ":" + iBatteryLevel + " - " + iPeriodo + " - " + iNumDevices + ":";
+            sCadena += (bAcelerometro || bGiroscopo || bMagnetometro)?"1":"0";
+            sCadena += (bHumedad)?"1":"0";
+            sCadena += (bBarometro || bTemperatura)?"1":"0";
+            sCadena += (bLuz)?"1":"0";
+            sCadena += "\n";
             f.write(sCadena.getBytes());
             f.close();
         } catch (Exception e) {
@@ -315,7 +321,10 @@ public class Datos extends AppCompatActivity {
                 } else if (characteristic.getUuid().compareTo(UUIDs.UUID_HUM_DATA) == 0) {
                     humedad = characteristic.getValue();
                     procesaHumedad(humedad, findGattIndex(gatt));
+                } else {
+                    Log.e("BluetoothLE", "Dato deslocalizado");
                 }
+
             }
         };
     }
@@ -341,7 +350,7 @@ public class Datos extends AppCompatActivity {
 
         btGatt.writeCharacteristic(characteristic);
 
-        characteristic = btGatt.getService(getServerUUID(firstActivar)).getCharacteristic(getConfigUUID(firstActivar));
+        characteristic = btGatt.getService(getServerUUID(firstActivar)).getCharacteristic(getPeriosdUUID(firstActivar));
         characteristic.setValue(iPeriodo * 11 / 110, FORMAT_SINT8, 0);
         btGatt.writeCharacteristic(characteristic);
     }
@@ -419,6 +428,27 @@ public class Datos extends AppCompatActivity {
                 break;
             case 3:
                 UUIDServer = UUIDs.UUID_OPT_SERV;
+                break;
+        }
+
+        return UUIDServer;
+    }
+
+    private UUID getPeriosdUUID(int iSensor) {
+        UUID UUIDServer = UUIDs.UUID_MOV_PERI;
+
+        switch (iSensor) {
+            case 0:
+                UUIDServer = UUIDs.UUID_MOV_PERI;
+                break;
+            case 1:
+                UUIDServer = UUIDs.UUID_HUM_PERI;
+                break;
+            case 2:
+                UUIDServer = UUIDs.UUID_BAR_PERI;
+                break;
+            case 3:
+                UUIDServer = UUIDs.UUID_OPT_PERI;
                 break;
         }
 

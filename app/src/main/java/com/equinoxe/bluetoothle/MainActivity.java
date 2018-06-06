@@ -1,21 +1,12 @@
 package com.equinoxe.bluetoothle;
 
 import android.Manifest;
-import android.animation.ValueAnimator;
-import android.app.Application;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothGatt;
-import android.bluetooth.BluetoothGattCallback;
-import android.bluetooth.BluetoothGattService;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.media.browse.MediaBrowser;
 import android.os.Build;
-import android.os.CountDownTimer;
 import android.os.Handler;
-import android.os.ParcelUuid;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -23,19 +14,12 @@ import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
-import android.view.animation.LinearInterpolator;
 import android.widget.Button;
 import android.widget.Toast;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
-
 import no.nordicsemi.android.support.v18.scanner.BluetoothLeScannerCompat;
 import no.nordicsemi.android.support.v18.scanner.ScanCallback;
-import no.nordicsemi.android.support.v18.scanner.ScanFilter;
 import no.nordicsemi.android.support.v18.scanner.ScanResult;
-import no.nordicsemi.android.support.v18.scanner.ScanSettings;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -164,7 +148,7 @@ public class MainActivity extends AppCompatActivity {
             if (!btDeviceInfoList.isPresent(device.getAddress())) {
                 String sName = device.getName();
                 if (sName != null && sName.compareTo(SENSORTAG_STRING) == 0) {
-                    BluetoothDeviceInfo btDeviceInfo = new BluetoothDeviceInfo(false, device.getName(), device.getAddress(), device);
+                    BluetoothDeviceInfo btDeviceInfo = new BluetoothDeviceInfo(false, device.getName(), device.getAddress());
                     btDeviceInfoList.addBluetoothDeviceInfo(btDeviceInfo);
                     //btnScanOnClick(null);
                 }
@@ -176,10 +160,6 @@ public class MainActivity extends AppCompatActivity {
             // Scan error
         }
     };
-
-    public BluetoothDeviceInfoList getBtDeviceInfoList() {
-        return btDeviceInfoList;
-    }
 
     public void btnConnectClick(View v) {
         int iNumSelected = btDeviceInfoList.getNumSelected();

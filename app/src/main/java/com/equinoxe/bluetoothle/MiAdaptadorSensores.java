@@ -1,18 +1,14 @@
 package com.equinoxe.bluetoothle;
 
-import android.bluetooth.BluetoothGattService;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.TextView;
-
-import java.util.List;
 
 
 public class MiAdaptadorSensores extends RecyclerView.Adapter<MiAdaptadorSensores.ViewHolderSensores> {

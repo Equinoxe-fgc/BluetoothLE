@@ -7,13 +7,11 @@ public class BluetoothDeviceInfo {
     private boolean bSelected;
     private String sName;
     private String sAddress;
-    private BluetoothDevice device;
 
-    public BluetoothDeviceInfo(boolean bSelected, String sName, String sAddress, BluetoothDevice device) {
+    public BluetoothDeviceInfo(boolean bSelected, String sName, String sAddress) {
         this.bSelected = bSelected;
         this.sName = sName;
         this.sAddress = sAddress;
-        this.device = device;
     }
 
     public boolean isSelected() {
@@ -28,10 +26,6 @@ public class BluetoothDeviceInfo {
         return sAddress;
     }
 
-    public BluetoothDevice getDevice() {
-        return device;
-    }
-
     public void setSelected(boolean bSelected) {
         this.bSelected = bSelected;
     }
@@ -42,9 +36,5 @@ public class BluetoothDeviceInfo {
 
     public void setAddress(String sAddress) {
         this.sAddress = sAddress;
-    }
-
-    public void setDevice(BluetoothDevice device) {
-        this.device = device;
     }
 }

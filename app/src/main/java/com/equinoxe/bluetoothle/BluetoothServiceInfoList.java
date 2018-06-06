@@ -7,7 +7,7 @@ public class BluetoothServiceInfoList {
     protected List<BluetoothServiceInfo> vectorServices;
 
     public BluetoothServiceInfoList() {
-        vectorServices = new ArrayList<BluetoothServiceInfo>();
+        vectorServices = new ArrayList<>();
     }
 
     public void addBluetoothServiceInfo(BluetoothServiceInfo btInfo) {

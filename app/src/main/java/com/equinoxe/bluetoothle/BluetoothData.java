@@ -9,16 +9,6 @@ public class BluetoothData {
     private String sMovimiento2;
     private String sMovimiento3;
 
-    public BluetoothData(String sHumedad, String sBarometro, String sLuz, String sTemperatura, String sMovimiento1, String sMovimiento2, String sMovimiento3) {
-        this.sHumedad = sHumedad;
-        this.sBarometro = sBarometro;
-        this.sLuz = sLuz;
-        this.sTemperatura = sTemperatura;
-        this.sMovimiento1 = sMovimiento1;
-        this.sMovimiento2 = sMovimiento2;
-        this.sMovimiento3 = sMovimiento3;
-    }
-
     public BluetoothData() {
         this.sHumedad = "";
         this.sBarometro = "";

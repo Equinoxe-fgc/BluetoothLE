@@ -5,7 +5,7 @@ import java.util.UUID;
 
 public class UUIDs {
     public final static UUID
-            UUID_DEVINFO_SERV = fromString("0000180a-0000-1000-8000-00805f9b34fb"),
+            //UUID_DEVINFO_SERV = fromString("0000180a-0000-1000-8000-00805f9b34fb"),
             /*UUID_DEVINFO_FWREV = fromString("00002A26-0000-1000-8000-00805f9b34fb"),*/
 
             // Sensor de humedad y temperatura

@@ -11,7 +11,7 @@ public class BluetoothDeviceInfoList {
     protected List<BluetoothDeviceInfo> vectorDevices;
 
     public BluetoothDeviceInfoList() {
-        vectorDevices = new ArrayList<BluetoothDeviceInfo>();
+        vectorDevices = new ArrayList<>();
     }
 
     public void addBluetoothDeviceInfo(BluetoothDeviceInfo btInfo) {
