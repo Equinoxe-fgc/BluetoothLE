@@ -25,4 +25,5 @@
     <string name="GyroscopeUnit">º/s</string>
     <string name="MagnetometerUnit">uT</string>
     <string name="TemperatureUnit">ºC</string>
+    <string name="EnableBluetooth">Bluetooth is disabled. Enable it.</string>
 </resources>

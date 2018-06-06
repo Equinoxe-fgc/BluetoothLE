@@ -24,7 +24,9 @@ public class Conexion extends AppCompatActivity {
     List<BluetoothGattService> listServices;
     BluetoothServiceInfoList listaServicesInfo;
     private final Handler handler = new Handler();
-    String sAddress1;
+
+    int iNumDevices;
+    String sAddresses[] = new String[8];
 
     private Button btnStart;
     private TextView txtPeriodo;
@@ -51,14 +53,24 @@ public class Conexion extends AppCompatActivity {
         BluetoothAdapter adapter = manager.getAdapter();
 
         Bundle extras = getIntent().getExtras();
-        sAddress1 = extras.getString("Address");
+        iNumDevices = extras.getInt("NumDevices");
+        for (int i = 0; i < iNumDevices; i++)
+            sAddresses[i] = extras.getString("Address" + i);
 
-        BluetoothDevice device = adapter.getRemoteDevice(sAddress1);
+        BluetoothDevice device = adapter.getRemoteDevice(sAddresses[0]);
 
         btGatt = device.connectGatt(this, false, mBluetoothGattCallback);
         ContenedorBluetooth.setInstance(btGatt);
 
         handler.removeCallbacks(sendUpdatesToUI);
+    }
+
+    @Override
+    public void onBackPressed() {
+        btGatt.disconnect();
+        btGatt.close();
+
+        super.onBackPressed();
     }
 
     private Runnable sendUpdatesToUI = new Runnable() {
@@ -138,7 +150,9 @@ public class Conexion extends AppCompatActivity {
         btGatt.close();
 
         Intent intent = new Intent(this, Datos.class);
-        intent.putExtra("Address1", sAddress1);
+        intent.putExtra("NumDevices", iNumDevices);
+        for (int i = 0; i < iNumDevices; i++)
+            intent.putExtra("Address" + i, sAddresses[i]);
         intent.putExtra("Periodo", Integer.valueOf(txtPeriodo.getText().toString()));
 
         for (int i = 0; i < listaServicesInfo.getSize(); i++) {

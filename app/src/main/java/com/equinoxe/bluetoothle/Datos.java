@@ -25,16 +25,13 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.Toast;
 
 
 import java.io.FileOutputStream;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Locale;
 import java.util.UUID;
 
 import static android.bluetooth.BluetoothGattCharacteristic.FORMAT_SINT8;
@@ -43,19 +40,19 @@ import static android.bluetooth.BluetoothGattCharacteristic.FORMAT_SINT8;
 public class Datos extends AppCompatActivity {
     final static long lTiempoMedidas = 8*60*60*1000;  // 8 horas * 60 minutos * 60 segundos * 1000 milisegundos - Tiempo de muestra en milisegundos
 
-    BluetoothGatt btGatt;
+    BluetoothGatt btGatt[] = new BluetoothGatt[8];
     BluetoothDataList listaDatos;
     //private final Handler handler = new Handler();
 
     private Button btnStopDatos;
-    private RecyclerView recyclerViewDatos;
-    private MiAdaptadorDatos adaptadorDatos1, adaptadorDatos2;
-    private RecyclerView.LayoutManager layoutManager;
+    private MiAdaptadorDatos adaptadorDatos;
 
     private boolean bHumedad, bBarometro, bLuz, bTemperatura, bAcelerometro, bGiroscopo, bMagnetometro;
-    private boolean bSensores[] = new boolean[4];
-    private boolean bActivacion[] = new boolean[4];
+    private boolean bSensores[][];
+    private boolean bActivacion[][];
     private int iPeriodo;
+    private int iNumDevices;
+    private String sAddresses[] = new String[8];
 
     byte barometro[] = new byte[4];
     long valorBarometro, valorTemperatura;
@@ -89,6 +86,9 @@ public class Datos extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_datos);
 
+        RecyclerView recyclerViewDatos;
+        RecyclerView.LayoutManager layoutManager;
+
         context = this;
         iContadorSegundos = 2000;   // Poner un número de segundos muy grande para que no se pare antes de que arranque
         //getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -96,6 +96,13 @@ public class Datos extends AppCompatActivity {
         df = new DecimalFormat("###.##");
 
         Bundle extras = getIntent().getExtras();
+        iNumDevices = extras.getInt("NumDevices");
+
+        bSensores = new boolean[iNumDevices][4];
+        bActivacion = new boolean[iNumDevices][4];
+
+        for (int i = 0; i < iNumDevices; i++)
+            sAddresses[i] = extras.getString("Address" + i);
         iPeriodo = extras.getInt("Periodo");
 
         bHumedad = extras.getBoolean("Humedad");
@@ -106,33 +113,35 @@ public class Datos extends AppCompatActivity {
         bGiroscopo = extras.getBoolean("Giroscopo");
         bMagnetometro = extras.getBoolean("Magnetometro");
 
-        bSensores[0] = bActivacion[0] = bAcelerometro || bGiroscopo || bMagnetometro;
-        bSensores[1] = bActivacion[1] = bHumedad;
-        bSensores[2] = bActivacion[2] = bBarometro ||bTemperatura;
-        bSensores[3] = bActivacion[3] = bLuz;
+        for (int i = 0; i < iNumDevices; i++) {
+            bSensores[iNumDevices][0] = bActivacion[iNumDevices][0] = bAcelerometro || bGiroscopo || bMagnetometro;
+            bSensores[iNumDevices][1] = bActivacion[iNumDevices][1] = bHumedad;
+            bSensores[iNumDevices][2] = bActivacion[iNumDevices][2] = bBarometro || bTemperatura;
+            bSensores[iNumDevices][3] = bActivacion[iNumDevices][3] = bLuz;
+        }
 
         recyclerViewDatos = findViewById(R.id.recycler_viewDatos);
         btnStopDatos = findViewById(R.id.btnStopDatos);
 
-        listaDatos = new BluetoothDataList(1);
+        listaDatos = new BluetoothDataList(iNumDevices);
 
-        adaptadorDatos1 = new MiAdaptadorDatos(this, listaDatos);
-        adaptadorDatos2 = null;
+        adaptadorDatos = new MiAdaptadorDatos(this, listaDatos);
         layoutManager = new LinearLayoutManager(this);
 
-        recyclerViewDatos.setAdapter(adaptadorDatos1);
+        recyclerViewDatos.setAdapter(adaptadorDatos);
         recyclerViewDatos.setLayoutManager(layoutManager);
 
-        IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        Intent batteryStatus = context.registerReceiver(null, ifilter);
-        iBatteryLevelStart = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+        iBatteryLevelStart = getBatteryLevel();
         dateStart = new Date();
 
-        String sAddress1 = extras.getString("Address1");
         BluetoothManager manager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
         BluetoothAdapter adapter = manager.getAdapter();
-        BluetoothDevice device = adapter.getRemoteDevice(sAddress1);
-        btGatt = device.connectGatt(this, true, mBluetoothGattCallback);
+
+        BluetoothDevice device;
+        for (int i = 0; i < iNumDevices; i++) {
+            device = adapter.getRemoteDevice(sAddresses[i]);
+            btGatt[i] = device.connectGatt(this, true, mBluetoothGattCallback);
+        }
 
         handler = new Handler();
         runOnUiThread(new Runnable(){
@@ -143,7 +152,7 @@ public class Datos extends AppCompatActivity {
                 if (iContadorSegundos <= 0)
                     btnPararClick(btnStopDatos);
                 else {
-                    adaptadorDatos1.notifyItemChanged(0);
+                    adaptadorDatos.notifyDataSetChanged();
                     handler.postDelayed(this, iPeriodo);
                 }
             }
@@ -151,18 +160,25 @@ public class Datos extends AppCompatActivity {
     }
 
 
+    private int getBatteryLevel() {
+        IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        Intent batteryStatus = context.registerReceiver(null, ifilter);
+        return batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+    }
+
+
     @Override
     public void onBackPressed() {
-        btGatt.disconnect();
-        btGatt.close();
+        for (int i = 0; i < iNumDevices; i++) {
+            btGatt[i].disconnect();
+            btGatt[i].close();
+        }
 
         super.onBackPressed();
     }
 
     public  void btnPararClick(View v) {
-        IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        Intent batteryStatus = context.registerReceiver(null, ifilter);
-        int iBatteryLevel = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+        int iBatteryLevel = getBatteryLevel();
 
         verifyStoragePermissions(this);
 
@@ -183,8 +199,10 @@ public class Datos extends AppCompatActivity {
             Log.e("Fichero de resultados", e.getMessage(), e);
         }
 
-        btGatt.disconnect();
-        btGatt.close();
+        for (int i = 0; i < iNumDevices; i++) {
+            btGatt[i].disconnect();
+            btGatt[i].close();
+        }
 
         finish();
     }
@@ -205,6 +223,16 @@ public class Datos extends AppCompatActivity {
         }
     }
 
+    private int findGattIndex(BluetoothGatt btGatt) {
+        int iIndex = 0;
+        String sAddress = btGatt.getDevice().getAddress();
+
+        while (sAddresses[iIndex].compareTo(sAddress) != 0)
+            iIndex++;
+
+        return iIndex;
+    }
+
     private final BluetoothGattCallback mBluetoothGattCallback;
     {
         mBluetoothGattCallback = new BluetoothGattCallback() {
@@ -213,7 +241,7 @@ public class Datos extends AppCompatActivity {
                 super.onConnectionStateChange(gatt, status, newState);
                 if (status == BluetoothGatt.GATT_SUCCESS)
                     if (newState == BluetoothGatt.STATE_CONNECTED) {
-                        btGatt.discoverServices();
+                        btGatt[findGattIndex(gatt)].discoverServices();
                     }
             }
 
@@ -222,9 +250,10 @@ public class Datos extends AppCompatActivity {
                 super.onServicesDiscovered(gatt, status);
                 if (status == BluetoothGatt.GATT_SUCCESS) {
                     // Se obtiene el primer sensor a activar
-                    int firstSensor = findFirstSensor();
+                    int iDevice = findGattIndex(gatt);
+                    int firstSensor = findFirstSensor(iDevice);
                     // Se actualiza para saber que ya se ha activado
-                    bSensores[firstSensor] = false;
+                    bSensores[iDevice][firstSensor] = false;
 
                     habilitarServicio(gatt, firstSensor);
                 }
@@ -236,18 +265,19 @@ public class Datos extends AppCompatActivity {
 
                 if (status == BluetoothGatt.GATT_SUCCESS) {
                     // Se obtiene el primer sensor a activar
-                    int firstSensor = findFirstSensor();
+                    int iDevice = findGattIndex(gatt);
+                    int firstSensor = findFirstSensor(iDevice);
 
                     if (firstSensor < 4) {
                         // Se actualiza para saber que ya se ha activado
-                        bSensores[firstSensor] = false;
+                        bSensores[iDevice][firstSensor] = false;
 
                         habilitarServicio(gatt, firstSensor);
                     } else {
-                        int firstActivar = firstSensorActivar();
-                        bActivacion[firstActivar] = false;
+                        int firstActivar = firstSensorActivar(iDevice);
+                        bActivacion[iDevice][firstActivar] = false;
 
-                        activarServicio(btGatt, firstActivar);
+                        activarServicio(btGatt[findGattIndex(gatt)], firstActivar);
                     }
                 }
             }
@@ -257,9 +287,10 @@ public class Datos extends AppCompatActivity {
                 super.onCharacteristicWrite(gatt, characteristic, status);
 
                 if (status == BluetoothGatt.GATT_SUCCESS) {
-                    int firstActivar = firstSensorActivar();
+                    int iDevice = findGattIndex(gatt);
+                    int firstActivar = firstSensorActivar(iDevice);
                     if (firstActivar < 4) {
-                        bActivacion[firstActivar] = false;
+                        bActivacion[iDevice][firstActivar] = false;
 
                         activarServicio(gatt, firstActivar);
 
@@ -274,16 +305,16 @@ public class Datos extends AppCompatActivity {
 
                 if (characteristic.getUuid().compareTo(UUIDs.UUID_BAR_DATA) == 0) {
                     barometro = characteristic.getValue();
-                    procesaBarometro(barometro);
+                    procesaBarometro(barometro, findGattIndex(gatt));
                 } else if (characteristic.getUuid().compareTo(UUIDs.UUID_OPT_DATA) == 0) {
                     luz = characteristic.getValue();
-                    procesaLuz(luz);
+                    procesaLuz(luz, findGattIndex(gatt));
                 } else if (characteristic.getUuid().compareTo(UUIDs.UUID_MOV_DATA) == 0) {
                     movimiento = characteristic.getValue();
-                    procesaMovimiento(movimiento);
+                    procesaMovimiento(movimiento, findGattIndex(gatt));
                 } else if (characteristic.getUuid().compareTo(UUIDs.UUID_HUM_DATA) == 0) {
                     humedad = characteristic.getValue();
-                    procesaHumedad(humedad);
+                    procesaHumedad(humedad, findGattIndex(gatt));
                 }
             }
         };
@@ -320,14 +351,15 @@ public class Datos extends AppCompatActivity {
         BluetoothGattService service;
         BluetoothGattDescriptor descriptor;
         BluetoothGattCharacteristic characteristic;
+        int iPosGatt = findGattIndex(gatt);
 
-        service = btGatt.getService(getServerUUID(firstSensor));
+        service = btGatt[iPosGatt].getService(getServerUUID(firstSensor));
         characteristic = service.getCharacteristic(getDataUUID(firstSensor));
         gatt.setCharacteristicNotification(characteristic, true);
 
         descriptor = characteristic.getDescriptor(UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"));
         descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-        btGatt.writeDescriptor(descriptor);
+        btGatt[iPosGatt].writeDescriptor(descriptor);
     }
 
     private UUID getConfigUUID(int iSensor) {
@@ -394,25 +426,25 @@ public class Datos extends AppCompatActivity {
     }
 
 
-    private int findFirstSensor() {
+    private int findFirstSensor(int iDevice) {
         int first = 0;
 
-        while (first < 4 && !bSensores[first])
+        while (first < 4 && !bSensores[iDevice][first])
             first++;
 
         return first;
     }
 
-    private int firstSensorActivar() {
+    private int firstSensorActivar(int iDevice) {
         int first = 0;
 
-        while (first < 4 && !bActivacion[first])
+        while (first < 4 && !bActivacion[iDevice][first])
             first++;
 
         return first;
     }
 
-    private void procesaMovimiento(byte movimiento[]) {
+    private void procesaMovimiento(byte movimiento[], int iDevice) {
         long aux;
         String sCadena;
 
@@ -447,7 +479,7 @@ public class Datos extends AppCompatActivity {
         sCadena = "G -> X: " + df.format(fValorGiroX) + " " + getString(R.string.GyroscopeUnit) + " ";
         sCadena += "   Y: " + df.format(fValorGiroY) + " " + getString(R.string.GyroscopeUnit) + " ";
         sCadena += "   Z: " + df.format(fValorGiroZ) + " " + getString(R.string.GyroscopeUnit);
-        listaDatos.setMovimiento1(0, sCadena);
+        listaDatos.setMovimiento1(iDevice, sCadena);
 
 
         // Acelerómetro
@@ -481,7 +513,7 @@ public class Datos extends AppCompatActivity {
         sCadena = "A -> X: " + df.format(fValorAcelX) + " " + getString(R.string.AccelerometerUnit) + " ";
         sCadena += "   Y: " + df.format(fValorAcelY) + " " + getString(R.string.AccelerometerUnit) + " ";
         sCadena += "   Z: " + df.format(fValorAcelZ) + " " + getString(R.string.AccelerometerUnit);
-        listaDatos.setMovimiento2(0, sCadena);
+        listaDatos.setMovimiento2(iDevice, sCadena);
 
 
         // Magnetómetro
@@ -515,10 +547,10 @@ public class Datos extends AppCompatActivity {
         sCadena =  "M -> X: " + Float.toString(fValorMagX) + " " + getString(R.string.MagnetometerUnit) + " ";
         sCadena += "   Y: " + Float.toString(fValorMagY) + " " + getString(R.string.MagnetometerUnit) + " ";
         sCadena += "   Z: " + Float.toString(fValorMagZ) + " " + getString(R.string.MagnetometerUnit);
-        listaDatos.setMovimiento3(0, sCadena);
+        listaDatos.setMovimiento3(iDevice, sCadena);
     }
 
-    private void procesaHumedad(byte humedad[]) {
+    private void procesaHumedad(byte humedad[], int iDevice) {
         long aux;
 
         valorHumedad = humedad[3];
@@ -533,10 +565,10 @@ public class Datos extends AppCompatActivity {
         fValorHumedad = valorHumedad / 65536;
 
         String sCadena = Float.toString(fValorHumedad) + " " + getString(R.string.HumidityUnit);
-        listaDatos.setHumedad(0, sCadena);
+        listaDatos.setHumedad(iDevice, sCadena);
     }
 
-    private void procesaLuz(byte luz[]) {
+    private void procesaLuz(byte luz[], int iDevice) {
         long auxM, auxE;
 
         auxM = luz[1];
@@ -551,10 +583,10 @@ public class Datos extends AppCompatActivity {
         fValorLuz = (float)auxM * (((float) auxE) / 100);
 
         String sCadena = df.format(fValorLuz) + " " + getString(R.string.LightUnit);
-        listaDatos.setLuz(0, sCadena);
+        listaDatos.setLuz(iDevice, sCadena);
     }
 
-    private void procesaBarometro(byte barometro[]) {
+    private void procesaBarometro(byte barometro[], int iDevice) {
         long aux;
 
         // Barómetro
@@ -573,7 +605,7 @@ public class Datos extends AppCompatActivity {
         fValorBarometro = valorBarometro / 100;
 
         String sCadena = df.format(fValorBarometro) + " " + getString(R.string.BarometerUnit);
-        listaDatos.setBarometro(0, sCadena);
+        listaDatos.setBarometro(iDevice, sCadena);
 
 
         // Temperatura
@@ -592,6 +624,6 @@ public class Datos extends AppCompatActivity {
         fValorTemperatura = valorTemperatura / 100;
 
         sCadena = df.format(fValorTemperatura) + " " + getString(R.string.TemperatureUnit);
-        listaDatos.setTemperatura(0, sCadena);
+        listaDatos.setTemperatura(iDevice, sCadena);
     }
 }

@@ -3,11 +3,13 @@ package com.equinoxe.bluetoothle;
 import android.Manifest;
 import android.animation.ValueAnimator;
 import android.app.Application;
+import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattService;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.media.browse.MediaBrowser;
 import android.os.Build;
@@ -66,6 +68,12 @@ public class MainActivity extends AppCompatActivity {
         adaptador = new MiAdaptador(this, btDeviceInfoList, this);
         layoutManager = new LinearLayoutManager(this);
 
+        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (!mBluetoothAdapter.isEnabled()) {
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableBtIntent, 1);
+        }
+
         iContador = 0;
         runOnUiThread(new Runnable(){
             @Override
@@ -94,16 +102,22 @@ public class MainActivity extends AppCompatActivity {
                 recyclerView.setLayoutManager(layoutManager);
             }
         } else {
+            BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+            if (!mBluetoothAdapter.isEnabled()) {
+                Toast.makeText(this, getString(R.string.EnableBluetooth), Toast.LENGTH_LONG).show();
+                return;
+            }
+
             btDeviceInfoList.clearAllBluetoothDeviceInfo();
             adaptador.notifyDataSetChanged();
 
             scanner = BluetoothLeScannerCompat.getScanner();
 
             // We want to receive a list of found devices every second
-            ScanSettings settings = new ScanSettings.Builder()
+            /*ScanSettings settings = new ScanSettings.Builder()
                     .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
                     .setReportDelay(1000)
-                    .build();
+                    .build();*/
 
             checkForPermissions();
             scanner.startScan(mScanCallback);
@@ -168,7 +182,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void btnConnectClick(View v) {
+        int iNumSelected = btDeviceInfoList.getNumSelected();
 
+        Intent intent = new Intent(this, Conexion.class);
+        intent.putExtra("NumDevices", iNumSelected);
+
+        int iPos = 0;
+        for (int i = 0; i < btDeviceInfoList.getSize(); i++)
+            if (btDeviceInfoList.getBluetoothDeviceInfo(i).isSelected()) {
+                intent.putExtra("Address" + iPos, btDeviceInfoList.getBluetoothDeviceInfo(i).getAddress());
+                iPos++;
+            }
+
+        startActivity(intent);
     }
 
     public void notifySomeSelected(boolean bSomeSelected) {
@@ -180,7 +206,8 @@ public class MainActivity extends AppCompatActivity {
 
     public void connectOne(int iPos) {
         Intent intent = new Intent(this, Conexion.class);
-        intent.putExtra("Address", btDeviceInfoList.getBluetoothDeviceInfo(iPos).getAddress());
+        intent.putExtra("NumDevices", 1);
+        intent.putExtra("Address0", btDeviceInfoList.getBluetoothDeviceInfo(iPos).getAddress());
         startActivity(intent);
    }
 }

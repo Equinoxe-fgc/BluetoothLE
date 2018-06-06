@@ -35,6 +35,17 @@ public class BluetoothDeviceInfoList {
         return vectorDevices.size();
     }
 
+    public int getNumSelected() {
+        int iNumDevices = 0;
+
+        for (int i = 0; i < vectorDevices.size(); i++) {
+            if (vectorDevices.get(i).isSelected())
+                iNumDevices++;
+        }
+
+        return iNumDevices;
+    }
+
     public void deleteBluetoothDeviceInfo(int iPos) {
         vectorDevices.remove(iPos);
     }
