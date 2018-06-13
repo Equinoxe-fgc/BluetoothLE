@@ -192,7 +192,7 @@ public class Datos extends AppCompatActivity {
             String currentDateandTime = sdf.format(new Date());
             String startDateandTime = sdf.format(dateStart);
 
-            sCadena = android.os.Build.MODEL + " ";
+            sCadena = android.os.Build.MODEL + " " + iNumDevices + " - ";
             sCadena += startDateandTime + ":" + iBatteryLevelStart + " -> " + currentDateandTime + ":" + iBatteryLevel + " - " + iPeriodo + " - " + iNumDevices + ":";
             sCadena += (bAcelerometro || bGiroscopo || bMagnetometro)?"1":"0";
             sCadena += (bHumedad)?"1":"0";
@@ -350,7 +350,7 @@ public class Datos extends AppCompatActivity {
 
         btGatt.writeCharacteristic(characteristic);
 
-        characteristic = btGatt.getService(getServerUUID(firstActivar)).getCharacteristic(getPeriosdUUID(firstActivar));
+        characteristic = btGatt.getService(getServerUUID(firstActivar)).getCharacteristic(getPerioddUUID(firstActivar));
         characteristic.setValue(iPeriodo * 11 / 110, FORMAT_SINT8, 0);
         btGatt.writeCharacteristic(characteristic);
     }
@@ -434,7 +434,7 @@ public class Datos extends AppCompatActivity {
         return UUIDServer;
     }
 
-    private UUID getPeriosdUUID(int iSensor) {
+    private UUID getPerioddUUID(int iSensor) {
         UUID UUIDServer = UUIDs.UUID_MOV_PERI;
 
         switch (iSensor) {

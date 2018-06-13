@@ -9,7 +9,7 @@
         android:layout_height="match_parent"
         android:layout_centerVertical="true"
         android:checked="true"
-        android:gravity="left|center_vertical" />
+        android:gravity="start|center_vertical" />
 
     <TextView
         android:id="@+id/txtSensorName"
@@ -17,9 +17,9 @@
         android:layout_height="wrap_content"
         android:layout_alignParentTop="false"
         android:layout_centerVertical="false"
-        android:layout_toRightOf="@+id/chkSelectSensor"
+        android:layout_toEndOf="@+id/chkSelectSensor"
         android:gravity="center_vertical"
-        android:paddingLeft="10dp"
+        android:paddingStartt="10dp"
         android:text="@string/sensor_name" />
 
     <TextView
@@ -28,9 +28,9 @@
         android:layout_height="match_parent"
         android:layout_below="@+id/txtSensorName"
         android:layout_centerVertical="false"
-        android:layout_toRightOf="@+id/chkSelectSensor"
+        android:layout_toEndOf="@+id/chkSelectSensor"
         android:gravity="top"
-        android:paddingLeft="10dp"
+        android:paddingStart="10dp"
         android:text="UUID" />
 
 </RelativeLayout>
