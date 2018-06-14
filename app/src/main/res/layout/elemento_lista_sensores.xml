@@ -19,7 +19,7 @@
         android:layout_centerVertical="false"
         android:layout_toEndOf="@+id/chkSelectSensor"
         android:gravity="center_vertical"
-        android:paddingStartt="10dp"
+        android:paddingStart="10dp"
         android:text="@string/sensor_name" />
 
     <TextView

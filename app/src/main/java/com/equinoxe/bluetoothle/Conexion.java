@@ -8,6 +8,7 @@ import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -16,6 +17,12 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.List;
 
 
@@ -29,9 +36,14 @@ public class Conexion extends AppCompatActivity {
     String sAddresses[] = new String[8];
 
     private TextView txtPeriodo;
+    private Button btnStartBatch;
     private RecyclerView recyclerViewSensores;
     private MiAdaptadorSensores adaptadorSensores;
     private RecyclerView.LayoutManager layoutManager;
+    private boolean bFicheroLotes;
+    private int iNumSimulacionesLotes;
+    private int iSimulationTime[];
+    private boolean bSimulationParameters[][];
 
 
     @Override
@@ -41,6 +53,7 @@ public class Conexion extends AppCompatActivity {
 
         recyclerViewSensores = findViewById(R.id.recyclerViewSensores);
         txtPeriodo = findViewById(R.id.txtPeriodo);
+        btnStartBatch = findViewById(R.id.btnStartBat);
 
         listaServicesInfo = new BluetoothServiceInfoList();
 
@@ -60,6 +73,44 @@ public class Conexion extends AppCompatActivity {
         btGatt = device.connectGatt(this, false, mBluetoothGattCallback);
 
         handler.removeCallbacks(sendUpdatesToUI);
+
+        bFicheroLotes = procesaFicheroLotes();
+
+        if (bFicheroLotes)
+            btnStartBatch.setVisibility(Button.VISIBLE);
+    }
+
+    private boolean procesaFicheroLotes() {
+        boolean bFicheroLotes = true;
+
+        File sdcard = Environment.getExternalStorageDirectory();
+        File file = new File(sdcard,"simulBT.bat");
+
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(file));
+            String line;
+
+            line = br.readLine();
+            iNumSimulacionesLotes = Integer.parseInt(line);
+            iSimulationTime = new int[iNumSimulacionesLotes];
+            bSimulationParameters = new boolean[iNumSimulacionesLotes][7];
+
+            for (int i = 0; i < iNumSimulacionesLotes; i++) {
+                line = br.readLine();
+                int iPosSeparador = line.indexOf(" ");
+                iSimulationTime[i] = Integer.parseInt(line.substring(0, iPosSeparador - 1));
+
+                for (int iSensor = 0; iSensor < 7; iSensor++) {
+                    bSimulationParameters[i][iSensor] = line.charAt(iPosSeparador + iSensor + 1) != '0';
+                }
+            }
+            br.close();
+        }
+        catch (IOException e) {
+            bFicheroLotes = false;
+        }
+
+        return bFicheroLotes;
     }
 
     @Override
@@ -142,7 +193,7 @@ public class Conexion extends AppCompatActivity {
         }
     };
 
-    public void onStartData(View v) {
+    public void onStartSingle(View v) {
         btGatt.disconnect();
         btGatt.close();
 
@@ -173,5 +224,9 @@ public class Conexion extends AppCompatActivity {
         }
 
         startActivity(intent);
+    }
+
+    public void onStartBatch(View v) {
+
     }
 }

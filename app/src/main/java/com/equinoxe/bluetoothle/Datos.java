@@ -184,7 +184,7 @@ public class Datos extends AppCompatActivity {
 
         //Toast.makeText(this, "Nivel de batería:" + iBatteryLevel + " %", Toast.LENGTH_LONG).show();
         String sCadena;
-        String sFichero = Environment.getExternalStorageDirectory() + "/simulBT_BAT.txt";
+        String sFichero = Environment.getExternalStorageDirectory() + "/simulBT.txt";
         try {
             FileOutputStream f = new FileOutputStream(sFichero, true);
 

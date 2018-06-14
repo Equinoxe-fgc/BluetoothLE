@@ -27,4 +27,5 @@
     <string name="MagnetometerUnit">uT</string>
     <string name="TemperatureUnit">ºC</string>
     <string name="EnableBluetooth">Bluetooth está deshabilitado. Habilítalo.</string>
+    <string name="StartBatch">Empezar proceso por lotes</string>
 </resources>
