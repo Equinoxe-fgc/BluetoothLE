@@ -26,8 +26,10 @@ import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
 
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -38,13 +40,14 @@ import static android.bluetooth.BluetoothGattCharacteristic.FORMAT_SINT8;
 
 
 public class Datos extends AppCompatActivity {
-    final static long lTiempoMedidas = 8*60*60*1000;  // 8 horas * 60 minutos * 60 segundos * 1000 milisegundos - Tiempo de muestra en milisegundos
+    //final static long lTiempoMedidas = 8*60*60*1000;  // 8 horas * 60 minutos * 60 segundos * 1000 milisegundos - Tiempo de muestra en milisegundos
+    final static long lTiempoMedidas = 120 * 1000;  // 120 segundos de espera para grabar
 
     BluetoothGatt btGatt[] = new BluetoothGatt[8];
     BluetoothDataList listaDatos;
     //private final Handler handler = new Handler();
 
-    private Button btnStopDatos;
+    //private Button btnStopDatos;
     private MiAdaptadorDatos adaptadorDatos;
 
     private boolean bHumedad, bBarometro, bLuz, bTemperatura, bAcelerometro, bGiroscopo, bMagnetometro;
@@ -76,8 +79,12 @@ public class Datos extends AppCompatActivity {
     Context context;
     Handler handler;
     long iContadorSegundos;
-    int iBatteryLevelStart;
-    Date dateStart;
+    FileOutputStream fOut;
+    BatteryInfoBT batInfo;
+    SimpleDateFormat sdf;
+    /*int iBatteryLevelStart;
+    Date dateStart;*/
+    long lDatosRecibidos = 0;
 
     DecimalFormat df;
 
@@ -90,7 +97,6 @@ public class Datos extends AppCompatActivity {
         RecyclerView.LayoutManager layoutManager;
 
         context = this;
-        iContadorSegundos = 2000;   // Poner un número de segundos muy grande para que no se pare antes de que arranque
         //getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         df = new DecimalFormat("###.##");
@@ -120,10 +126,12 @@ public class Datos extends AppCompatActivity {
             bSensores[i][3] = bActivacion[i][3] = bLuz;
         }
 
-        recyclerViewDatos = findViewById(R.id.recycler_viewDatos);
-        btnStopDatos = findViewById(R.id.btnStopDatos);
+        iContadorSegundos = lTiempoMedidas / iPeriodo;
 
-        listaDatos = new BluetoothDataList(iNumDevices);
+        recyclerViewDatos = findViewById(R.id.recycler_viewDatos);
+        //btnStopDatos = findViewById(R.id.btnStopDatos);
+
+        listaDatos = new BluetoothDataList(iNumDevices, sAddresses);
 
         adaptadorDatos = new MiAdaptadorDatos(this, listaDatos);
         layoutManager = new LinearLayoutManager(this);
@@ -131,8 +139,30 @@ public class Datos extends AppCompatActivity {
         recyclerViewDatos.setAdapter(adaptadorDatos);
         recyclerViewDatos.setLayoutManager(layoutManager);
 
-        iBatteryLevelStart = getBatteryLevel();
-        dateStart = new Date();
+        verifyStoragePermissions(this);
+        sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
+        String currentDateandTime = sdf.format(new Date());
+        try {
+            File file;
+            int iNumFichero = 0;
+            String sFichero;
+            do {
+                sFichero = Environment.getExternalStorageDirectory() + "/simulBT_ " + iNumFichero + ".txt";
+                file = new File(sFichero);
+                iNumFichero++;
+            } while (file.exists());
+
+            fOut = new FileOutputStream(sFichero, false);
+            String sCadena = android.os.Build.MODEL + " " + iNumDevices + " " + currentDateandTime + "\n";
+            fOut.write(sCadena.getBytes());
+            fOut.flush();
+        } catch (Exception e) {
+            Toast.makeText(this, "Error fichero", Toast.LENGTH_LONG).show();
+        }
+        batInfo = new BatteryInfoBT();
+
+        /*iBatteryLevelStart = getBatteryLevel();
+        dateStart = new Date();*/
 
         BluetoothManager manager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
         BluetoothAdapter adapter = manager.getAdapter();
@@ -149,21 +179,29 @@ public class Datos extends AppCompatActivity {
             public void run(){
                 iContadorSegundos--;
 
-                if (iContadorSegundos <= 0)
-                    btnPararClick(btnStopDatos);
-                else {
-                    adaptadorDatos.notifyDataSetChanged();
-                    handler.postDelayed(this, iPeriodo);
+                if (iContadorSegundos <= 0) {
+                    iContadorSegundos = lTiempoMedidas / iPeriodo;
+                    grabarMedidas();
+                    //btnPararClick(btnStopDatos);
                 }
+
+                adaptadorDatos.notifyDataSetChanged();
+                handler.postDelayed(this, iPeriodo);
             }
         });
     }
 
 
-    private int getBatteryLevel() {
+    private void getBatteryInfo() {
         IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         Intent batteryStatus = context.registerReceiver(null, ifilter);
-        return batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+        batInfo.setBatteryLevel(batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1));
+        batInfo.setVoltaje(batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1));
+        batInfo.setTemperature(batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1));
+
+        BatteryManager mBatteryManager = (BatteryManager)this.getSystemService(Context.BATTERY_SERVICE);
+        batInfo.setCurrentAverage(mBatteryManager.getLongProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_AVERAGE));
+        batInfo.setCurrentNow(mBatteryManager.getLongProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW));
     }
 
 
@@ -174,11 +212,33 @@ public class Datos extends AppCompatActivity {
             btGatt[i].close();
         }
 
+        try {
+            fOut.close();
+        } catch (Exception e) { }
+
         super.onBackPressed();
     }
 
+    public void grabarMedidas() {
+        getBatteryInfo();
+        try {
+            String sCadena = sdf.format(new Date()) + ":" +
+                             batInfo.getBatteryLevel() + ":" +
+                             batInfo.getVoltaje() + ":" +
+                             batInfo.getTemperature() + ":" +
+                             batInfo.getCurrentAverage() + ":" +
+                             batInfo.getCurrentNow() + " - " +
+                             lDatosRecibidos + "\n";
+            fOut.write(sCadena.getBytes());
+            fOut.flush();
+        } catch (Exception e) {
+            Log.e("Fichero de resultados", e.getMessage(), e);
+        }
+    }
+
+
     public  void btnPararClick(View v) {
-        int iBatteryLevel = getBatteryLevel();
+        /*int iBatteryLevel = getBatteryLevel();
 
         verifyStoragePermissions(this);
 
@@ -203,12 +263,16 @@ public class Datos extends AppCompatActivity {
             f.close();
         } catch (Exception e) {
             Log.e("Fichero de resultados", e.getMessage(), e);
-        }
+        }*/
 
         for (int i = 0; i < iNumDevices; i++) {
             btGatt[i].disconnect();
             btGatt[i].close();
         }
+
+        try {
+            fOut.close();
+        } catch (Exception e) { }
 
         finish();
     }
@@ -299,8 +363,6 @@ public class Datos extends AppCompatActivity {
                         bActivacion[iDevice][firstActivar] = false;
 
                         activarServicio(gatt, firstActivar);
-
-                        iContadorSegundos = lTiempoMedidas / iPeriodo;
                     }
                 }
             }
@@ -318,6 +380,7 @@ public class Datos extends AppCompatActivity {
                 } else if (characteristic.getUuid().compareTo(UUIDs.UUID_MOV_DATA) == 0) {
                     movimiento = characteristic.getValue();
                     procesaMovimiento(movimiento, findGattIndex(gatt));
+                    lDatosRecibidos++;
                 } else if (characteristic.getUuid().compareTo(UUIDs.UUID_HUM_DATA) == 0) {
                     humedad = characteristic.getValue();
                     procesaHumedad(humedad, findGattIndex(gatt));

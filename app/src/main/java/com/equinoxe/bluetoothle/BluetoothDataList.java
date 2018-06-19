@@ -6,11 +6,11 @@ import java.util.List;
 public class BluetoothDataList {
     private List<BluetoothData> vectorData;
 
-    public BluetoothDataList(int iSize) {
+    public BluetoothDataList(int iSize, String sAddresses[]) {
         this.vectorData = new ArrayList<>();
 
         for (int i = 0; i < iSize; i++) {
-            vectorData.add(new BluetoothData());
+            vectorData.add(new BluetoothData(sAddresses[i]));
         }
     }
 
@@ -20,6 +20,10 @@ public class BluetoothDataList {
 
     public int getSize() {
         return vectorData.size();
+    }
+
+    public void setAddress(int iPos, String sAddress) {
+        vectorData.get(iPos).setAddress(sAddress);
     }
 
     public void setHumedad(int iPos, String sHumedad) {

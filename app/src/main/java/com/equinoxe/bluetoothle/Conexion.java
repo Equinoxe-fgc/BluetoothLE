@@ -1,5 +1,7 @@
 package com.equinoxe.bluetoothle;
 
+import android.Manifest;
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -7,9 +9,12 @@ import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -36,14 +41,15 @@ public class Conexion extends AppCompatActivity {
     String sAddresses[] = new String[8];
 
     private TextView txtPeriodo;
-    private Button btnStartBatch;
+    //private Button btnStartBatch;
+    private Button btnStart;
     private RecyclerView recyclerViewSensores;
     private MiAdaptadorSensores adaptadorSensores;
     private RecyclerView.LayoutManager layoutManager;
-    private boolean bFicheroLotes;
+    /*private boolean bFicheroLotes;
     private int iNumSimulacionesLotes;
     private int iSimulationTime[];
-    private boolean bSimulationParameters[][];
+    private boolean bSimulationParameters[][];*/
 
 
     @Override
@@ -53,7 +59,7 @@ public class Conexion extends AppCompatActivity {
 
         recyclerViewSensores = findViewById(R.id.recyclerViewSensores);
         txtPeriodo = findViewById(R.id.txtPeriodo);
-        btnStartBatch = findViewById(R.id.btnStartBat);
+        btnStart = findViewById(R.id.btnStart);
 
         listaServicesInfo = new BluetoothServiceInfoList();
 
@@ -74,17 +80,19 @@ public class Conexion extends AppCompatActivity {
 
         handler.removeCallbacks(sendUpdatesToUI);
 
-        bFicheroLotes = procesaFicheroLotes();
+        //bFicheroLotes = procesaFicheroLotes();
 
-        if (bFicheroLotes)
-            btnStartBatch.setVisibility(Button.VISIBLE);
+        /*if (bFicheroLotes)
+            btnStartBatch.setVisibility(Button.VISIBLE);*/
     }
 
-    private boolean procesaFicheroLotes() {
+    /*private boolean procesaFicheroLotes() {
         boolean bFicheroLotes = true;
 
         File sdcard = Environment.getExternalStorageDirectory();
         File file = new File(sdcard,"simulBT.bat");
+
+        verifyStoragePermissions(this);
 
         try {
             BufferedReader br = new BufferedReader(new FileReader(file));
@@ -98,7 +106,7 @@ public class Conexion extends AppCompatActivity {
             for (int i = 0; i < iNumSimulacionesLotes; i++) {
                 line = br.readLine();
                 int iPosSeparador = line.indexOf(" ");
-                iSimulationTime[i] = Integer.parseInt(line.substring(0, iPosSeparador - 1));
+                iSimulationTime[i] = Integer.parseInt(line.substring(0, iPosSeparador));
 
                 for (int iSensor = 0; iSensor < 7; iSensor++) {
                     bSimulationParameters[i][iSensor] = line.charAt(iPosSeparador + iSensor + 1) != '0';
@@ -112,6 +120,23 @@ public class Conexion extends AppCompatActivity {
 
         return bFicheroLotes;
     }
+
+    public static void verifyStoragePermissions(Activity activity) {
+        // Check if we have write permission
+        String[] PERMISSIONS_STORAGE = {
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+        };
+
+        if (Build.VERSION.SDK_INT >= 23) {
+            int permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+            if (permission != PackageManager.PERMISSION_GRANTED) {
+                // We don't have permission so prompt the user
+                ActivityCompat.requestPermissions(activity, PERMISSIONS_STORAGE, 1);
+            }
+        }
+    }*/
+
 
     @Override
     public void onBackPressed() {
@@ -131,21 +156,23 @@ public class Conexion extends AppCompatActivity {
                     if (sServiceName.length() != 0) {
                         BluetoothServiceInfo serviceInfo;
 
-                        if (sServiceName.compareTo(getString(R.string.Motion)) != 0) {
+                        /*if (sServiceName.compareTo(getString(R.string.Motion)) != 0) {
                             serviceInfo = new BluetoothServiceInfo(true, sServiceName, service.getUuid().toString());
                             listaServicesInfo.addBluetoothServiceInfo(serviceInfo);
-                        }
+                        }*/
 
-                        if (sServiceName.compareTo(getString(R.string.Barometer)) == 0) {   // El servicio de barómetro también tiene el de temperatura
+                        /*if (sServiceName.compareTo(getString(R.string.Barometer)) == 0) {   // El servicio de barómetro también tiene el de temperatura
                             serviceInfo = new BluetoothServiceInfo(true, getString(R.string.Temperature), service.getUuid().toString());
                             listaServicesInfo.addBluetoothServiceInfo(serviceInfo);
-                        } else if (sServiceName.compareTo(getString(R.string.Motion)) == 0) {   // El servicio de movimiento tiene giróscopo, acelerómetro y magnetómetro
+                        } else*/ if (sServiceName.compareTo(getString(R.string.Motion)) == 0) {   // El servicio de movimiento tiene giróscopo, acelerómetro y magnetómetro
                             serviceInfo = new BluetoothServiceInfo(true, getString(R.string.Gyroscope), service.getUuid().toString());
                             listaServicesInfo.addBluetoothServiceInfo(serviceInfo);
                             serviceInfo = new BluetoothServiceInfo(true, getString(R.string.Accelerometer), service.getUuid().toString());
                             listaServicesInfo.addBluetoothServiceInfo(serviceInfo);
                             serviceInfo = new BluetoothServiceInfo(true, getString(R.string.Magnetometer), service.getUuid().toString());
                             listaServicesInfo.addBluetoothServiceInfo(serviceInfo);
+
+                            btnStart.setEnabled(true);
                         }
                     }
                 }

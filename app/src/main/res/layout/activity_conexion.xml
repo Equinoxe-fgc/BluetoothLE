@@ -10,12 +10,13 @@
         android:layout_height="wrap_content"
         android:onClick="onStartBatch"
         android:text="@string/StartBatch"
-        android:visibility="invisible" />
+        android:visibility="gone" />
 
     <Button
         android:id="@+id/btnStart"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:enabled="false"
         android:onClick="onStartSingle"
         android:text="@string/start" />
 
