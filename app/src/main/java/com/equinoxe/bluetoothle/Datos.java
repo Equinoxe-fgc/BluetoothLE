@@ -14,6 +14,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkInfo;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -25,12 +28,14 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.Toast;
 
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.Socket;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -53,6 +58,7 @@ public class Datos extends AppCompatActivity {
     private boolean bHumedad, bBarometro, bLuz, bTemperatura, bAcelerometro, bGiroscopo, bMagnetometro;
     private boolean bSensores[][];
     private boolean bActivacion[][];
+    private boolean bConfigPeriodo[][];
     private int iPeriodo;
     private int iNumDevices;
     private String sAddresses[] = new String[8];
@@ -86,6 +92,10 @@ public class Datos extends AppCompatActivity {
     Date dateStart;*/
     long lDatosRecibidos = 0;
 
+    boolean bNetConnected;
+    Socket socket;
+    OutputStream outputStream;
+
     DecimalFormat df;
 
     @Override
@@ -106,6 +116,7 @@ public class Datos extends AppCompatActivity {
 
         bSensores = new boolean[iNumDevices][4];
         bActivacion = new boolean[iNumDevices][4];
+        bConfigPeriodo = new boolean[iNumDevices][4];
 
         for (int i = 0; i < iNumDevices; i++)
             sAddresses[i] = extras.getString("Address" + i);
@@ -120,10 +131,10 @@ public class Datos extends AppCompatActivity {
         bMagnetometro = extras.getBoolean("Magnetometro");
 
         for (int i = 0; i < iNumDevices; i++) {
-            bSensores[i][0] = bActivacion[i][0] = bAcelerometro || bGiroscopo || bMagnetometro;
-            bSensores[i][1] = bActivacion[i][1] = bHumedad;
-            bSensores[i][2] = bActivacion[i][2] = bBarometro || bTemperatura;
-            bSensores[i][3] = bActivacion[i][3] = bLuz;
+            bSensores[i][0] = bActivacion[i][0] = bConfigPeriodo[i][0] = bAcelerometro || bGiroscopo || bMagnetometro;
+            bSensores[i][1] = bActivacion[i][1] = bConfigPeriodo[i][1] = bHumedad;
+            bSensores[i][2] = bActivacion[i][2] = bConfigPeriodo[i][2] = bBarometro || bTemperatura;
+            bSensores[i][3] = bActivacion[i][3] = bConfigPeriodo[i][3] = bLuz;
         }
 
         iContadorSegundos = lTiempoMedidas / iPeriodo;
@@ -147,17 +158,17 @@ public class Datos extends AppCompatActivity {
             int iNumFichero = 0;
             String sFichero;
             do {
-                sFichero = Environment.getExternalStorageDirectory() + "/simulBT_ " + iNumFichero + ".txt";
+                sFichero = Environment.getExternalStorageDirectory() + "/simulBT_" + iNumFichero + ".txt";
                 file = new File(sFichero);
                 iNumFichero++;
             } while (file.exists());
 
             fOut = new FileOutputStream(sFichero, false);
-            String sCadena = android.os.Build.MODEL + " " + iNumDevices + " " + currentDateandTime + "\n";
+            String sCadena = android.os.Build.MODEL + " " + iNumDevices + " " + iPeriodo + " " + currentDateandTime + "\n";
             fOut.write(sCadena.getBytes());
             fOut.flush();
         } catch (Exception e) {
-            Toast.makeText(this, "Error fichero", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getResources().getResourceTypeName(R.string.ERROR_FICHERO), Toast.LENGTH_LONG).show();
         }
         batInfo = new BatteryInfoBT();
 
@@ -171,6 +182,27 @@ public class Datos extends AppCompatActivity {
         for (int i = 0; i < iNumDevices; i++) {
             device = adapter.getRemoteDevice(sAddresses[i]);
             btGatt[i] = device.connectGatt(this, true, mBluetoothGattCallback);
+        }
+
+        bNetConnected = false;
+        try {
+            ConnectivityManager check = (ConnectivityManager) this.context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo info = check.getActiveNetworkInfo();
+            if (!info.isConnected()) {
+                Toast.makeText(this, getResources().getString(R.string.ERROR_RED), Toast.LENGTH_LONG).show();
+            } else bNetConnected = true;
+        } catch (Exception e) {
+            Toast.makeText(this, getResources().getString(R.string.ERROR_RED), Toast.LENGTH_LONG).show();
+        }
+
+        if (bNetConnected) {
+            try {
+                socket = new Socket("localhost", 8000);
+                outputStream = socket.getOutputStream();
+            } catch (Exception e) {
+                outputStream = null;
+                Toast.makeText(this, getResources().getString(R.string.ERROR_CONEXION_RED), Toast.LENGTH_LONG).show();
+            }
         }
 
         handler = new Handler();
@@ -214,6 +246,8 @@ public class Datos extends AppCompatActivity {
 
         try {
             fOut.close();
+            outputStream.close();
+            socket.close();
         } catch (Exception e) { }
 
         super.onBackPressed();
@@ -272,6 +306,8 @@ public class Datos extends AppCompatActivity {
 
         try {
             fOut.close();
+            outputStream.close();
+            socket.close();
         } catch (Exception e) { }
 
         finish();
@@ -379,6 +415,9 @@ public class Datos extends AppCompatActivity {
                     procesaLuz(luz, findGattIndex(gatt));
                 } else if (characteristic.getUuid().compareTo(UUIDs.UUID_MOV_DATA) == 0) {
                     movimiento = characteristic.getValue();
+                    try {
+                        if (outputStream != null) outputStream.write(movimiento);
+                    } catch (IOException e) {}
                     procesaMovimiento(movimiento, findGattIndex(gatt));
                     lDatosRecibidos++;
                 } else if (characteristic.getUuid().compareTo(UUIDs.UUID_HUM_DATA) == 0) {

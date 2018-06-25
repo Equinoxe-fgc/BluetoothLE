@@ -28,4 +28,9 @@
     <string name="TemperatureUnit">ºC</string>
     <string name="EnableBluetooth">Bluetooth está deshabilitado. Habilítalo.</string>
     <string name="StartBatch">Empezar proceso por lotes</string>
+    <string name="ERROR_RED">No hay conexión de red</string>
+    <string name="ERROR_CONEXION_RED">Error creando conexión con el servidor</string>
+    <string name="ERROR_FICHERO">Error al abrir fichero de log</string>
+    <string name="servidor">Servidor:</string>
+    <string name="puerto">Puerto:</string>
 </resources>
