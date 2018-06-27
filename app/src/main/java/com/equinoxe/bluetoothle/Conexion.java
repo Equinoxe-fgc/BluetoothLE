@@ -9,6 +9,7 @@ import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -41,21 +42,17 @@ public class Conexion extends AppCompatActivity {
     String sAddresses[] = new String[8];
 
     private TextView txtPeriodo;
-    //private Button btnStartBatch;
     private Button btnStart;
     private RecyclerView recyclerViewSensores;
     private MiAdaptadorSensores adaptadorSensores;
     private RecyclerView.LayoutManager layoutManager;
-    /*private boolean bFicheroLotes;
-    private int iNumSimulacionesLotes;
-    private int iSimulationTime[];
-    private boolean bSimulationParameters[][];*/
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_conexion);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
         recyclerViewSensores = findViewById(R.id.recyclerViewSensores);
         txtPeriodo = findViewById(R.id.txtPeriodo);

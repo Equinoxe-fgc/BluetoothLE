@@ -13,6 +13,8 @@ import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -22,6 +24,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.StrictMode;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -45,8 +48,7 @@ import static android.bluetooth.BluetoothGattCharacteristic.FORMAT_SINT8;
 
 
 public class Datos extends AppCompatActivity {
-    //final static long lTiempoMedidas = 8*60*60*1000;  // 8 horas * 60 minutos * 60 segundos * 1000 milisegundos - Tiempo de muestra en milisegundos
-    final static long lTiempoMedidas = 120 * 1000;  // 120 segundos de espera para grabar
+    final static long lTiempoMedidas = 10 * 1000;  // 120 segundos de espera para grabar
 
     BluetoothGatt btGatt[] = new BluetoothGatt[8];
     BluetoothDataList listaDatos;
@@ -88,9 +90,8 @@ public class Datos extends AppCompatActivity {
     FileOutputStream fOut;
     BatteryInfoBT batInfo;
     SimpleDateFormat sdf;
-    /*int iBatteryLevelStart;
-    Date dateStart;*/
-    long lDatosRecibidos = 0;
+    long lDatosRecibidos;
+    boolean bSensing;
 
     boolean bNetConnected;
     Socket socket;
@@ -102,6 +103,9 @@ public class Datos extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_datos);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+
+        //StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().permitNetwork().build());
 
         RecyclerView recyclerViewDatos;
         RecyclerView.LayoutManager layoutManager;
@@ -137,10 +141,7 @@ public class Datos extends AppCompatActivity {
             bSensores[i][3] = bActivacion[i][3] = bConfigPeriodo[i][3] = bLuz;
         }
 
-        iContadorSegundos = lTiempoMedidas / iPeriodo;
-
         recyclerViewDatos = findViewById(R.id.recycler_viewDatos);
-        //btnStopDatos = findViewById(R.id.btnStopDatos);
 
         listaDatos = new BluetoothDataList(iNumDevices, sAddresses);
 
@@ -150,7 +151,6 @@ public class Datos extends AppCompatActivity {
         recyclerViewDatos.setAdapter(adaptadorDatos);
         recyclerViewDatos.setLayoutManager(layoutManager);
 
-        verifyStoragePermissions(this);
         sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
         String currentDateandTime = sdf.format(new Date());
         try {
@@ -168,12 +168,9 @@ public class Datos extends AppCompatActivity {
             fOut.write(sCadena.getBytes());
             fOut.flush();
         } catch (Exception e) {
-            Toast.makeText(this, getResources().getResourceTypeName(R.string.ERROR_FICHERO), Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getResources().getString(R.string.ERROR_FICHERO), Toast.LENGTH_LONG).show();
         }
         batInfo = new BatteryInfoBT();
-
-        /*iBatteryLevelStart = getBatteryLevel();
-        dateStart = new Date();*/
 
         BluetoothManager manager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
         BluetoothAdapter adapter = manager.getAdapter();
@@ -197,7 +194,11 @@ public class Datos extends AppCompatActivity {
 
         if (bNetConnected) {
             try {
-                socket = new Socket("localhost", 8000);
+                SharedPreferences pref = getApplicationContext().getSharedPreferences("Settings", MODE_PRIVATE);
+                String sServer = pref.getString("server", "127.0.0.1");
+                int iPuerto = pref.getInt("puerto", 8080);
+
+                socket = new Socket(sServer, iPuerto);
                 outputStream = socket.getOutputStream();
             } catch (Exception e) {
                 outputStream = null;
@@ -205,19 +206,24 @@ public class Datos extends AppCompatActivity {
             }
         }
 
+        iContadorSegundos = lTiempoMedidas / iPeriodo;
+        bSensing = false;
+        lDatosRecibidos = 0;
+
         handler = new Handler();
         runOnUiThread(new Runnable(){
             @Override
             public void run(){
-                iContadorSegundos--;
+                if (bSensing) {
+                    iContadorSegundos--;
 
-                if (iContadorSegundos <= 0) {
-                    iContadorSegundos = lTiempoMedidas / iPeriodo;
-                    grabarMedidas();
-                    //btnPararClick(btnStopDatos);
+                    if (iContadorSegundos <= 0) {
+                        grabarMedidas();
+                        iContadorSegundos = lTiempoMedidas / iPeriodo;
+                        adaptadorDatos.notifyDataSetChanged();
+                    }
                 }
 
-                adaptadorDatos.notifyDataSetChanged();
                 handler.postDelayed(this, iPeriodo);
             }
         });
@@ -239,6 +245,8 @@ public class Datos extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
+        bSensing = false;
+
         for (int i = 0; i < iNumDevices; i++) {
             btGatt[i].disconnect();
             btGatt[i].close();
@@ -272,33 +280,6 @@ public class Datos extends AppCompatActivity {
 
 
     public  void btnPararClick(View v) {
-        /*int iBatteryLevel = getBatteryLevel();
-
-        verifyStoragePermissions(this);
-
-        //Toast.makeText(this, "Nivel de batería:" + iBatteryLevel + " %", Toast.LENGTH_LONG).show();
-        String sCadena;
-        String sFichero = Environment.getExternalStorageDirectory() + "/simulBT.txt";
-        try {
-            FileOutputStream f = new FileOutputStream(sFichero, true);
-
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
-            String currentDateandTime = sdf.format(new Date());
-            String startDateandTime = sdf.format(dateStart);
-
-            sCadena = android.os.Build.MODEL + " " + iNumDevices + " - ";
-            sCadena += startDateandTime + ":" + iBatteryLevelStart + " -> " + currentDateandTime + ":" + iBatteryLevel + " - " + iPeriodo + " - " + iNumDevices + ":";
-            sCadena += (bAcelerometro || bGiroscopo || bMagnetometro)?"1":"0";
-            sCadena += (bHumedad)?"1":"0";
-            sCadena += (bBarometro || bTemperatura)?"1":"0";
-            sCadena += (bLuz)?"1":"0";
-            sCadena += "\n";
-            f.write(sCadena.getBytes());
-            f.close();
-        } catch (Exception e) {
-            Log.e("Fichero de resultados", e.getMessage(), e);
-        }*/
-
         for (int i = 0; i < iNumDevices; i++) {
             btGatt[i].disconnect();
             btGatt[i].close();
@@ -311,22 +292,6 @@ public class Datos extends AppCompatActivity {
         } catch (Exception e) { }
 
         finish();
-    }
-
-    public static void verifyStoragePermissions(Activity activity) {
-        // Check if we have write permission
-        String[] PERMISSIONS_STORAGE = {
-                Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-        };
-
-        if (Build.VERSION.SDK_INT >= 23) {
-            int permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
-            if (permission != PackageManager.PERMISSION_GRANTED) {
-                // We don't have permission so prompt the user
-                ActivityCompat.requestPermissions(activity, PERMISSIONS_STORAGE, 1);
-            }
-        }
     }
 
     private int findGattIndex(BluetoothGatt btGatt) {
@@ -381,9 +346,9 @@ public class Datos extends AppCompatActivity {
                         habilitarServicio(gatt, firstSensor);
                     } else {
                         int firstActivar = firstSensorActivar(iDevice);
-                        bActivacion[iDevice][firstActivar] = false;
 
-                        activarServicio(btGatt[findGattIndex(gatt)], firstActivar);
+                        bActivacion[iDevice][firstActivar] = false;
+                        activarServicio(gatt, firstActivar);
                     }
                 }
             }
@@ -394,11 +359,19 @@ public class Datos extends AppCompatActivity {
 
                 if (status == BluetoothGatt.GATT_SUCCESS) {
                     int iDevice = findGattIndex(gatt);
+
                     int firstActivar = firstSensorActivar(iDevice);
                     if (firstActivar < 4) {
                         bActivacion[iDevice][firstActivar] = false;
 
                         activarServicio(gatt, firstActivar);
+                    } else {
+                        int firstPeriodo = firstSensorPeriodo(iDevice);
+                        if (firstPeriodo < 4) {
+                            bConfigPeriodo[iDevice][firstPeriodo] = false;
+                            configPeriodo(gatt, firstPeriodo);
+                        } else
+                            bSensing = true;
                     }
                 }
             }
@@ -415,9 +388,9 @@ public class Datos extends AppCompatActivity {
                     procesaLuz(luz, findGattIndex(gatt));
                 } else if (characteristic.getUuid().compareTo(UUIDs.UUID_MOV_DATA) == 0) {
                     movimiento = characteristic.getValue();
-                    try {
+                    /*try {
                         if (outputStream != null) outputStream.write(movimiento);
-                    } catch (IOException e) {}
+                    } catch (IOException e) {}*/
                     procesaMovimiento(movimiento, findGattIndex(gatt));
                     lDatosRecibidos++;
                 } else if (characteristic.getUuid().compareTo(UUIDs.UUID_HUM_DATA) == 0) {
@@ -429,6 +402,14 @@ public class Datos extends AppCompatActivity {
 
             }
         };
+    }
+
+    private void configPeriodo(BluetoothGatt btGatt, int firstPeriodo) {
+        BluetoothGattCharacteristic characteristic;
+
+        characteristic = btGatt.getService(getServerUUID(firstPeriodo)).getCharacteristic(getPeriodoUUID(firstPeriodo));
+        characteristic.setValue(iPeriodo * 11 / 110, FORMAT_SINT8, 0);
+        btGatt.writeCharacteristic(characteristic);
     }
 
     private void activarServicio(BluetoothGatt btGatt, int firstActivar) {
@@ -450,10 +431,6 @@ public class Datos extends AppCompatActivity {
                 break;
         }
 
-        btGatt.writeCharacteristic(characteristic);
-
-        characteristic = btGatt.getService(getServerUUID(firstActivar)).getCharacteristic(getPerioddUUID(firstActivar));
-        characteristic.setValue(iPeriodo * 11 / 110, FORMAT_SINT8, 0);
         btGatt.writeCharacteristic(characteristic);
     }
 
@@ -536,7 +513,7 @@ public class Datos extends AppCompatActivity {
         return UUIDServer;
     }
 
-    private UUID getPerioddUUID(int iSensor) {
+    private UUID getPeriodoUUID(int iSensor) {
         UUID UUIDServer = UUIDs.UUID_MOV_PERI;
 
         switch (iSensor) {
@@ -562,6 +539,15 @@ public class Datos extends AppCompatActivity {
         int first = 0;
 
         while (first < 4 && !bSensores[iDevice][first])
+            first++;
+
+        return first;
+    }
+
+    private int firstSensorPeriodo(int iDevice) {
+        int first = 0;
+
+        while (first < 4 && !bConfigPeriodo[iDevice][first])
             first++;
 
         return first;

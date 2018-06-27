@@ -33,4 +33,7 @@
     <string name="ERROR_FICHERO">Error al abrir fichero de log</string>
     <string name="servidor">Servidor:</string>
     <string name="puerto">Puerto:</string>
+    <string name="Options_saved">Opciones grabadas</string>
+    <string name="Incorrect_IP">IP Incorrecta</string>
+    <string name="Incorrect_Port">Puerto incorrecto</string>
 </resources>

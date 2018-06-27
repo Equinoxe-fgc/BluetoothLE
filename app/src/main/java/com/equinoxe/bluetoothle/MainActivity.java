@@ -1,9 +1,12 @@
 package com.equinoxe.bluetoothle;
 
 import android.Manifest;
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
@@ -62,6 +65,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+
+        verifyStoragePermissions();
 
         btDeviceInfoList = new BluetoothDeviceInfoList();
 
@@ -106,6 +112,8 @@ public class MainActivity extends AppCompatActivity {
                 recyclerView.setLayoutManager(layoutManager);
             }
         } else {
+            btnConnect.setVisibility(View.INVISIBLE);
+
             BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
             if (!mBluetoothAdapter.isEnabled()) {
                 Toast.makeText(this, getString(R.string.EnableBluetooth), Toast.LENGTH_LONG).show();
@@ -161,6 +169,23 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void verifyStoragePermissions() {
+        // Check if we have write permission
+        String[] PERMISSIONS_STORAGE = {
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+        };
+
+        if (Build.VERSION.SDK_INT >= 23) {
+            int permission = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+            if (permission != PackageManager.PERMISSION_GRANTED) {
+                // We don't have permission so prompt the user
+                ActivityCompat.requestPermissions(this, PERMISSIONS_STORAGE, 1);
+            }
+        }
+    }
+
+
     private final ScanCallback mScanCallback = new ScanCallback() {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
@@ -208,6 +233,7 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, Conexion.class);
         intent.putExtra("NumDevices", 1);
         intent.putExtra("Address0", btDeviceInfoList.getBluetoothDeviceInfo(iPos).getAddress());
+
         startActivity(intent);
    }
 }

@@ -28,8 +28,11 @@
     <string name="EnableBluetooth">Bluetooth is disabled. Enable it.</string>
     <string name="StartBatch">Start batch process</string>
     <string name="ERROR_RED">There is not network connection</string>
-    <string name="ERROR_CONEXION_RED">Error creating conection with the server</string>
+    <string name="ERROR_CONEXION_RED">Error creating connection with the server</string>
     <string name="ERROR_FICHERO">Error opening log file</string>
     <string name="servidor">Server:</string>
     <string name="puerto">Port:</string>
+    <string name="Options_saved">Options saved</string>
+    <string name="Incorrect_IP">Incorrect IP</string>
+    <string name="Incorrect_Port">Incorrect Port</string>
 </resources>
