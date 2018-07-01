@@ -20,6 +20,12 @@
         android:onClick="onStartSingle"
         android:text="@string/start" />
 
+    <CheckBox
+        android:id="@+id/chkGPS"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/gps" />
+
     <TextView
         android:id="@+id/textView"
         android:layout_width="match_parent"
@@ -32,7 +38,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:inputType="number"
-        android:text="1000" />
+        android:text="50" />
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/recyclerViewSensores"

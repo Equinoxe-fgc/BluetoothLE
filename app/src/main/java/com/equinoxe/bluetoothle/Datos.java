@@ -2,6 +2,7 @@ package com.equinoxe.bluetoothle;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -11,11 +12,16 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkInfo;
@@ -24,6 +30,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.StrictMode;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -31,6 +38,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 
@@ -48,7 +56,8 @@ import static android.bluetooth.BluetoothGattCharacteristic.FORMAT_SINT8;
 
 
 public class Datos extends AppCompatActivity {
-    final static long lTiempoMedidas = 10 * 1000;  // 120 segundos de espera para grabar
+    final static long lTiempoMedidas = 120 * 1000;  // 120 segundos de espera para grabar
+    final static long lTiempoGPS = 10 * 1000;
 
     BluetoothGatt btGatt[] = new BluetoothGatt[8];
     BluetoothDataList listaDatos;
@@ -56,6 +65,8 @@ public class Datos extends AppCompatActivity {
 
     //private Button btnStopDatos;
     private MiAdaptadorDatos adaptadorDatos;
+    private TextView txtLongitud;
+    private  TextView txtLatitud;
 
     private boolean bHumedad, bBarometro, bLuz, bTemperatura, bAcelerometro, bGiroscopo, bMagnetometro;
     private boolean bSensores[][];
@@ -87,11 +98,17 @@ public class Datos extends AppCompatActivity {
     Context context;
     Handler handler;
     long iContadorSegundos;
+    long iContadorGPS;
     FileOutputStream fOut;
     BatteryInfoBT batInfo;
     SimpleDateFormat sdf;
     long lDatosRecibidos;
     boolean bSensing;
+
+    boolean bGPS;
+    boolean bGPSConnected;
+    LocationManager locManager;
+    String sGPSprovider;
 
     boolean bNetConnected;
     Socket socket;
@@ -134,6 +151,8 @@ public class Datos extends AppCompatActivity {
         bGiroscopo = extras.getBoolean("Giroscopo");
         bMagnetometro = extras.getBoolean("Magnetometro");
 
+        bGPS = extras.getBoolean("GPS");
+
         for (int i = 0; i < iNumDevices; i++) {
             bSensores[i][0] = bActivacion[i][0] = bConfigPeriodo[i][0] = bAcelerometro || bGiroscopo || bMagnetometro;
             bSensores[i][1] = bActivacion[i][1] = bConfigPeriodo[i][1] = bHumedad;
@@ -142,6 +161,8 @@ public class Datos extends AppCompatActivity {
         }
 
         recyclerViewDatos = findViewById(R.id.recycler_viewDatos);
+        txtLatitud = findViewById(R.id.textViewLatitud);
+        txtLongitud = findViewById(R.id.textViewLongitud);
 
         listaDatos = new BluetoothDataList(iNumDevices, sAddresses);
 
@@ -206,6 +227,42 @@ public class Datos extends AppCompatActivity {
             }
         }
 
+        bGPSConnected = bGPS;
+        if (bGPS) {
+            locManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+
+            if (!locManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                Toast.makeText(this, "GPS is disabled", Toast.LENGTH_SHORT).show();
+            } else {
+                Criteria criterio = new Criteria();
+                criterio.setCostAllowed(false);
+                criterio.setAltitudeRequired(false);
+                criterio.setAccuracy(Criteria.ACCURACY_FINE);
+                sGPSprovider = locManager.getBestProvider(criterio, true);
+                try {
+                    Location location = locManager.getLastKnownLocation(sGPSprovider);
+                    if (location != null) {
+                        txtLatitud.setText("Lat: " + location.getLatitude());
+                        txtLongitud.setText("Long: " + location.getLongitude());
+                    }
+                    locManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 10000, 2, locListener, Looper.getMainLooper());
+                } catch (SecurityException e) {
+                    bGPSConnected = false;
+                    Toast.makeText(this, "GPS failed. Enable GPS.", Toast.LENGTH_SHORT).show();
+                } catch (Exception e) {
+                    bGPSConnected = false;
+                    Toast.makeText(this, "GPS failed. Enable GPS.", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+        if (bGPSConnected) {
+            txtLongitud.setVisibility(View.VISIBLE);
+            txtLatitud.setVisibility(View.VISIBLE);
+        } else {
+            txtLongitud.setVisibility(View.GONE);
+            txtLatitud.setVisibility(View.GONE);
+        }
+
         iContadorSegundos = lTiempoMedidas / iPeriodo;
         bSensing = false;
         lDatosRecibidos = 0;
@@ -229,6 +286,24 @@ public class Datos extends AppCompatActivity {
         });
     }
 
+    public LocationListener locListener = new LocationListener() {
+        public void onLocationChanged(Location location) {
+            txtLatitud.setText("Lat: " + location.getLatitude());
+            txtLongitud.setText("Long: " + location.getLongitude());
+        }
+
+        public void onProviderDisabled(String provider) {
+
+        }
+
+        public void onProviderEnabled(String provider) {
+
+        }
+
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+
+        }
+    };
 
     private void getBatteryInfo() {
         IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);

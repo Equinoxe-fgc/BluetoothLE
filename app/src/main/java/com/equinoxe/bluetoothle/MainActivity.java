@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
-        verifyStoragePermissions();
+        //verifyStoragePermissions();
 
         btDeviceInfoList = new BluetoothDeviceInfoList();
 
@@ -100,6 +100,8 @@ public class MainActivity extends AppCompatActivity {
                 handler.postDelayed(this, 1000);
             }
         });
+
+        btnScanOnClick(btnScan);
     }
 
     public void btnScanOnClick(View v) {
@@ -153,8 +155,13 @@ public class MainActivity extends AppCompatActivity {
     };*/
 
     private void checkForPermissions() {
+        String[] PERMISSIONS_STORAGE = {
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+        };
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {  // Only ask for these permissions on runtime when running Android 6.0 or higher
-            switch (ContextCompat.checkSelfPermission(getBaseContext(), Manifest.permission.ACCESS_COARSE_LOCATION)) {
+/*            switch (ContextCompat.checkSelfPermission(getBaseContext(), Manifest.permission.ACCESS_COARSE_LOCATION)) {
                 case PackageManager.PERMISSION_DENIED:
                     if (ContextCompat.checkSelfPermission(getBaseContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                         int REQUEST_ACCESS_COARSE_LOCATION = 1;
@@ -165,11 +172,29 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 case PackageManager.PERMISSION_GRANTED:
                     break;
+            }*/
+
+            int permission = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION);
+            if (permission != PackageManager.PERMISSION_GRANTED) {
+                // We don't have permission so prompt the user
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
+            }
+
+            permission = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+            if (permission != PackageManager.PERMISSION_GRANTED) {
+                // We don't have permission so prompt the user
+                ActivityCompat.requestPermissions(this, PERMISSIONS_STORAGE, 1);
+            }
+
+            permission = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
+            if (permission != PackageManager.PERMISSION_GRANTED) {
+                // We don't have permission so prompt the user
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION} , 1);
             }
         }
     }
 
-    private void verifyStoragePermissions() {
+    /*private void verifyStoragePermissions() {
         // Check if we have write permission
         String[] PERMISSIONS_STORAGE = {
                 Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -183,7 +208,7 @@ public class MainActivity extends AppCompatActivity {
                 ActivityCompat.requestPermissions(this, PERMISSIONS_STORAGE, 1);
             }
         }
-    }
+    }*/
 
 
     private final ScanCallback mScanCallback = new ScanCallback() {

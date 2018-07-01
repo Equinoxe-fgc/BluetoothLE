@@ -36,4 +36,5 @@
     <string name="Options_saved">Opciones grabadas</string>
     <string name="Incorrect_IP">IP Incorrecta</string>
     <string name="Incorrect_Port">Puerto incorrecto</string>
+    <string name="gps">GPS</string>
 </resources>

@@ -2,12 +2,14 @@ package com.equinoxe.bluetoothle;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
@@ -21,6 +23,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.TextView;
 
 import java.io.BufferedReader;
@@ -43,6 +46,7 @@ public class Conexion extends AppCompatActivity {
 
     private TextView txtPeriodo;
     private Button btnStart;
+    private CheckBox chkGPS;
     private RecyclerView recyclerViewSensores;
     private MiAdaptadorSensores adaptadorSensores;
     private RecyclerView.LayoutManager layoutManager;
@@ -57,6 +61,7 @@ public class Conexion extends AppCompatActivity {
         recyclerViewSensores = findViewById(R.id.recyclerViewSensores);
         txtPeriodo = findViewById(R.id.txtPeriodo);
         btnStart = findViewById(R.id.btnStart);
+        chkGPS = findViewById(R.id.chkGPS);
 
         listaServicesInfo = new BluetoothServiceInfoList();
 
@@ -221,6 +226,31 @@ public class Conexion extends AppCompatActivity {
         btGatt.disconnect();
         btGatt.close();
 
+        /*if (chkGPS.isChecked()) {
+            final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            final String action = Settings.LOCATION_SERVICE;
+
+            final String message = "Enable either GPS or any other location"
+                    + " service to find current location.  Click OK to go to"
+                    + " location services settings to let you do so.";
+
+            builder.setMessage(message)
+                    .setPositiveButton("OK",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface d, int id) {
+                                    startActivity(new Intent(action));
+                                    d.dismiss();
+                                }
+                            })
+                    .setNegativeButton("Cancel",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface d, int id) {
+                                    d.cancel();
+                                }
+                            });
+            builder.create().show();
+        }*/
+
         Intent intent = new Intent(this, Datos.class);
         intent.putExtra("NumDevices", iNumDevices);
         for (int i = 0; i < iNumDevices; i++)
@@ -246,6 +276,8 @@ public class Conexion extends AppCompatActivity {
             else if (sName.compareTo(getString(R.string.Magnetometer)) == 0)
                 intent.putExtra("Magnetometro", serviceInfo.isSelected());
         }
+
+        intent.putExtra("GPS", chkGPS.isChecked());
 
         startActivity(intent);
     }
