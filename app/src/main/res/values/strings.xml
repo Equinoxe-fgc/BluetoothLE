@@ -35,5 +35,7 @@
     <string name="Options_saved">Options saved</string>
     <string name="Incorrect_IP">Incorrect IP</string>
     <string name="Incorrect_Port">Incorrect Port</string>
-    <string name="gps">GPS</string>
+    <string name="gps">Positioning</string>
+    <string name="LOCATION_DISABLED">Location is disabled. Enable GPS and WiFi (or data)</string>
+    <string name="LOCATION_FAILED">Location failed. Enable GPS and WiFi (or data)</string>
 </resources>

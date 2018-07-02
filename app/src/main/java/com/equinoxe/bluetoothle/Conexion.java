@@ -277,7 +277,7 @@ public class Conexion extends AppCompatActivity {
                 intent.putExtra("Magnetometro", serviceInfo.isSelected());
         }
 
-        intent.putExtra("GPS", chkGPS.isChecked());
+        intent.putExtra("Location", chkGPS.isChecked());
 
         startActivity(intent);
     }

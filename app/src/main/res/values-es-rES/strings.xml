@@ -36,5 +36,7 @@
     <string name="Options_saved">Opciones grabadas</string>
     <string name="Incorrect_IP">IP Incorrecta</string>
     <string name="Incorrect_Port">Puerto incorrecto</string>
-    <string name="gps">GPS</string>
+    <string name="gps">Localización</string>
+    <string name="LOCATION_DISABLED">La localización está deshabilitada. Habilite el GPS y WiFi (o datos)</string>
+    <string name="LOCATION_FAILED">Error de localización. Habilite el GPS y WiFi (o datos)</string>
 </resources>

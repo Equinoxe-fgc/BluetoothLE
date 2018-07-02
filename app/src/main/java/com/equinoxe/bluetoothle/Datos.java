@@ -98,17 +98,16 @@ public class Datos extends AppCompatActivity {
     Context context;
     Handler handler;
     long iContadorSegundos;
-    long iContadorGPS;
     FileOutputStream fOut;
     BatteryInfoBT batInfo;
     SimpleDateFormat sdf;
     long lDatosRecibidos;
     boolean bSensing;
 
-    boolean bGPS;
-    boolean bGPSConnected;
+    boolean bLocation;
+    boolean bLocationConnected;
     LocationManager locManager;
-    String sGPSprovider;
+    String sLocationProvider;
 
     boolean bNetConnected;
     Socket socket;
@@ -151,7 +150,7 @@ public class Datos extends AppCompatActivity {
         bGiroscopo = extras.getBoolean("Giroscopo");
         bMagnetometro = extras.getBoolean("Magnetometro");
 
-        bGPS = extras.getBoolean("GPS");
+        bLocation = extras.getBoolean("Location");
 
         for (int i = 0; i < iNumDevices; i++) {
             bSensores[i][0] = bActivacion[i][0] = bConfigPeriodo[i][0] = bAcelerometro || bGiroscopo || bMagnetometro;
@@ -179,7 +178,7 @@ public class Datos extends AppCompatActivity {
             int iNumFichero = 0;
             String sFichero;
             do {
-                sFichero = Environment.getExternalStorageDirectory() + "/simulBT_" + iNumFichero + ".txt";
+                sFichero = Environment.getExternalStorageDirectory() + "/" + android.os.Build.MODEL + "_" + iNumDevices + "_" + iPeriodo + "_" + iNumFichero + ".txt";
                 file = new File(sFichero);
                 iNumFichero++;
             } while (file.exists());
@@ -227,35 +226,44 @@ public class Datos extends AppCompatActivity {
             }
         }
 
-        bGPSConnected = bGPS;
-        if (bGPS) {
+        boolean bGPSEnabled = true;
+        boolean bNetworkEnabled = true;
+
+        bLocationConnected = bLocation;
+        if (bLocation) {
             locManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 
+            if (!locManager.isProviderEnabled(LocationManager.GPS_PROVIDER))
+                bGPSEnabled = false;
             if (!locManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-                Toast.makeText(this, "GPS is disabled", Toast.LENGTH_SHORT).show();
+                bNetworkEnabled = false;
+
+            if (!bGPSEnabled && !bNetworkEnabled)
+                Toast.makeText(this, getResources().getString(R.string.LOCATION_DISABLED), Toast.LENGTH_SHORT).show();
             } else {
                 Criteria criterio = new Criteria();
                 criterio.setCostAllowed(false);
                 criterio.setAltitudeRequired(false);
                 criterio.setAccuracy(Criteria.ACCURACY_FINE);
-                sGPSprovider = locManager.getBestProvider(criterio, true);
+                sLocationProvider = locManager.getBestProvider(criterio, true);
                 try {
-                    Location location = locManager.getLastKnownLocation(sGPSprovider);
+                    if (bNetworkEnabled)
+                        locManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 10000, 0, locListener, Looper.getMainLooper());
+                    else
+                        locManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 10000, 0, locListener, Looper.getMainLooper());
+
+                    Location location = locManager.getLastKnownLocation(sLocationProvider);
                     if (location != null) {
                         txtLatitud.setText("Lat: " + location.getLatitude());
                         txtLongitud.setText("Long: " + location.getLongitude());
                     }
-                    locManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 10000, 2, locListener, Looper.getMainLooper());
                 } catch (SecurityException e) {
-                    bGPSConnected = false;
-                    Toast.makeText(this, "GPS failed. Enable GPS.", Toast.LENGTH_SHORT).show();
-                } catch (Exception e) {
-                    bGPSConnected = false;
-                    Toast.makeText(this, "GPS failed. Enable GPS.", Toast.LENGTH_SHORT).show();
+                    bLocationConnected = false;
+                    Toast.makeText(this, getResources().getString(R.string.LOCATION_FAILED), Toast.LENGTH_SHORT).show();
                 }
             }
         }
-        if (bGPSConnected) {
+        if (bLocationConnected) {
             txtLongitud.setVisibility(View.VISIBLE);
             txtLatitud.setVisibility(View.VISIBLE);
         } else {
@@ -317,35 +325,16 @@ public class Datos extends AppCompatActivity {
         batInfo.setCurrentNow(mBatteryManager.getLongProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW));
     }
 
-
-    @Override
-    public void onBackPressed() {
-        bSensing = false;
-
-        for (int i = 0; i < iNumDevices; i++) {
-            btGatt[i].disconnect();
-            btGatt[i].close();
-        }
-
-        try {
-            fOut.close();
-            outputStream.close();
-            socket.close();
-        } catch (Exception e) { }
-
-        super.onBackPressed();
-    }
-
     public void grabarMedidas() {
         getBatteryInfo();
         try {
             String sCadena = sdf.format(new Date()) + ":" +
-                             batInfo.getBatteryLevel() + ":" +
-                             batInfo.getVoltaje() + ":" +
-                             batInfo.getTemperature() + ":" +
-                             batInfo.getCurrentAverage() + ":" +
-                             batInfo.getCurrentNow() + " - " +
-                             lDatosRecibidos + "\n";
+                    batInfo.getBatteryLevel() + ":" +
+                    batInfo.getVoltaje() + ":" +
+                    batInfo.getTemperature() + ":" +
+                    batInfo.getCurrentAverage() + ":" +
+                    batInfo.getCurrentNow() + " - " +
+                    lDatosRecibidos + "\n";
             fOut.write(sCadena.getBytes());
             fOut.flush();
         } catch (Exception e) {
@@ -354,19 +343,33 @@ public class Datos extends AppCompatActivity {
     }
 
 
+    @Override
+    public void onBackPressed() {
+        cerrarConexiones();
+        super.onBackPressed();
+    }
+
     public  void btnPararClick(View v) {
+        cerrarConexiones();
+        finish();
+    }
+
+    private void cerrarConexiones() {
+        bSensing = false;
+
         for (int i = 0; i < iNumDevices; i++) {
             btGatt[i].disconnect();
             btGatt[i].close();
         }
+
+        if (bLocationConnected)
+            locManager.removeUpdates(locListener);
 
         try {
             fOut.close();
             outputStream.close();
             socket.close();
         } catch (Exception e) { }
-
-        finish();
     }
 
     private int findGattIndex(BluetoothGatt btGatt) {
