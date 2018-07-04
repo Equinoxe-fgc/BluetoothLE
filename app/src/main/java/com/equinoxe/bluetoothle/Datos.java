@@ -105,13 +105,19 @@ public class Datos extends AppCompatActivity {
     boolean bSensing;
 
     boolean bLocation;
+    boolean bSendServer;
     boolean bLocationConnected;
     LocationManager locManager;
+    Location mejorLocaliz;
     String sLocationProvider;
+    boolean bGPSEnabled;
+    boolean bNetworkEnabled;
 
     boolean bNetConnected;
     Socket socket;
     OutputStream outputStream;
+    EnvioDatosSocket envioAsync;
+    EnvoltorioDatos envoltorioDatosMovimiento;
 
     DecimalFormat df;
 
@@ -151,6 +157,7 @@ public class Datos extends AppCompatActivity {
         bMagnetometro = extras.getBoolean("Magnetometro");
 
         bLocation = extras.getBoolean("Location");
+        bSendServer = extras.getBoolean("SendServer");
 
         for (int i = 0; i < iNumDevices; i++) {
             bSensores[i][0] = bActivacion[i][0] = bConfigPeriodo[i][0] = bAcelerometro || bGiroscopo || bMagnetometro;
@@ -202,38 +209,36 @@ public class Datos extends AppCompatActivity {
         }
 
         bNetConnected = false;
-        try {
-            ConnectivityManager check = (ConnectivityManager) this.context.getSystemService(Context.CONNECTIVITY_SERVICE);
-            NetworkInfo info = check.getActiveNetworkInfo();
-            if (!info.isConnected()) {
-                Toast.makeText(this, getResources().getString(R.string.ERROR_RED), Toast.LENGTH_LONG).show();
-            } else bNetConnected = true;
-        } catch (Exception e) {
-            Toast.makeText(this, getResources().getString(R.string.ERROR_RED), Toast.LENGTH_LONG).show();
-        }
-
-        if (bNetConnected) {
+        if (bSendServer) {
             try {
+                ConnectivityManager check = (ConnectivityManager) this.context.getSystemService(Context.CONNECTIVITY_SERVICE);
+                NetworkInfo info = check.getActiveNetworkInfo();
+                if (!info.isConnected()) {
+                    Toast.makeText(this, getResources().getString(R.string.ERROR_RED), Toast.LENGTH_LONG).show();
+                } else bNetConnected = true;
+            } catch (Exception e) {
+                Toast.makeText(this, getResources().getString(R.string.ERROR_RED), Toast.LENGTH_LONG).show();
+            }
+
+            if (bNetConnected) {
                 SharedPreferences pref = getApplicationContext().getSharedPreferences("Settings", MODE_PRIVATE);
                 String sServer = pref.getString("server", "127.0.0.1");
                 int iPuerto = pref.getInt("puerto", 8080);
 
-                socket = new Socket(sServer, iPuerto);
-                outputStream = socket.getOutputStream();
-            } catch (Exception e) {
-                outputStream = null;
-                Toast.makeText(this, getResources().getString(R.string.ERROR_CONEXION_RED), Toast.LENGTH_LONG).show();
+                envioAsync = new EnvioDatosSocket(sServer, iPuerto, 18);
+                if (!envioAsync.isConnectionOK()) {
+                    Toast.makeText(this, getResources().getString(R.string.ERROR_CONEXION_RED), Toast.LENGTH_SHORT).show();
+                }
+
+                envoltorioDatosMovimiento = new EnvoltorioDatos(18);
             }
         }
-
-        boolean bGPSEnabled = true;
-        boolean bNetworkEnabled = true;
 
         bLocationConnected = bLocation;
         if (bLocation) {
             locManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 
-            if (!locManager.isProviderEnabled(LocationManager.GPS_PROVIDER))
+            /*if (!locManager.isProviderEnabled(LocationManager.GPS_PROVIDER))
                 bGPSEnabled = false;
             if (!locManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
                 bNetworkEnabled = false;
@@ -261,7 +266,9 @@ public class Datos extends AppCompatActivity {
                     bLocationConnected = false;
                     Toast.makeText(this, getResources().getString(R.string.LOCATION_FAILED), Toast.LENGTH_SHORT).show();
                 }
-            }
+            }*/
+            ultimaLocalizacion();
+            activarProveedores();
         }
         if (bLocationConnected) {
             txtLongitud.setVisibility(View.VISIBLE);
@@ -294,22 +301,62 @@ public class Datos extends AppCompatActivity {
         });
     }
 
+    private void ultimaLocalizacion() {
+        try {
+            if (locManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                actualizaMejorLocaliz(locManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
+            }
+            if (locManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                actualizaMejorLocaliz(locManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER));
+            }
+        } catch (SecurityException e) {
+            Toast.makeText(this, getResources().getString(R.string.LOCATION_FAILED), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void activarProveedores() {
+        try {
+            bGPSEnabled = bNetworkEnabled = false;
+            if (locManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                bGPSEnabled = true;
+                locManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 10000, 0, locListener, Looper.getMainLooper());
+            }
+            if (locManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                bNetworkEnabled = true;
+                locManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 10000, 0, locListener, Looper.getMainLooper());
+            }
+            if (!bGPSEnabled && !bNetworkEnabled)
+                Toast.makeText(this, getResources().getString(R.string.LOCATION_DISABLED), Toast.LENGTH_SHORT).show();
+        } catch (SecurityException e) {
+            Toast.makeText(this, getResources().getString(R.string.LOCATION_FAILED), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void actualizaMejorLocaliz(Location localiz) {
+        if (localiz != null && (mejorLocaliz == null ||
+                                localiz.getAccuracy() < 2 * mejorLocaliz.getAccuracy() ||
+                                localiz.getTime() - mejorLocaliz.getTime() > 20000)) {
+            mejorLocaliz = localiz;
+        }
+    }
+
     public LocationListener locListener = new LocationListener() {
         public void onLocationChanged(Location location) {
-            txtLatitud.setText("Lat: " + location.getLatitude());
-            txtLongitud.setText("Long: " + location.getLongitude());
+            actualizaMejorLocaliz(location);
+            txtLatitud.setText("Lat: " + mejorLocaliz.getLatitude());
+            txtLongitud.setText("Long: " + mejorLocaliz.getLongitude());
         }
 
         public void onProviderDisabled(String provider) {
-
+            activarProveedores();
         }
 
         public void onProviderEnabled(String provider) {
-
+            activarProveedores();
         }
 
         public void onStatusChanged(String provider, int status, Bundle extras) {
-
+            activarProveedores();
         }
     };
 
@@ -356,6 +403,8 @@ public class Datos extends AppCompatActivity {
 
     private void cerrarConexiones() {
         bSensing = false;
+
+        //envioAsync.cancel(true);
 
         for (int i = 0; i < iNumDevices; i++) {
             btGatt[i].disconnect();
@@ -466,9 +515,13 @@ public class Datos extends AppCompatActivity {
                     procesaLuz(luz, findGattIndex(gatt));
                 } else if (characteristic.getUuid().compareTo(UUIDs.UUID_MOV_DATA) == 0) {
                     movimiento = characteristic.getValue();
-                    /*try {
-                        if (outputStream != null) outputStream.write(movimiento);
-                    } catch (IOException e) {}*/
+
+                    //envoltorioDatosMovimiento.setDatos(movimiento);
+                    if (bSendServer) {
+                        envioAsync.setData(movimiento);
+                        envioAsync.start();
+                    }
+
                     procesaMovimiento(movimiento, findGattIndex(gatt));
                     lDatosRecibidos++;
                 } else if (characteristic.getUuid().compareTo(UUIDs.UUID_HUM_DATA) == 0) {

@@ -47,6 +47,7 @@ public class Conexion extends AppCompatActivity {
     private TextView txtPeriodo;
     private Button btnStart;
     private CheckBox chkGPS;
+    private CheckBox chkSendServer;
     private RecyclerView recyclerViewSensores;
     private MiAdaptadorSensores adaptadorSensores;
     private RecyclerView.LayoutManager layoutManager;
@@ -62,6 +63,7 @@ public class Conexion extends AppCompatActivity {
         txtPeriodo = findViewById(R.id.txtPeriodo);
         btnStart = findViewById(R.id.btnStart);
         chkGPS = findViewById(R.id.chkGPS);
+        chkSendServer = findViewById(R.id.chkEnvioServidor);
 
         listaServicesInfo = new BluetoothServiceInfoList();
 
@@ -278,6 +280,7 @@ public class Conexion extends AppCompatActivity {
         }
 
         intent.putExtra("Location", chkGPS.isChecked());
+        intent.putExtra("SendServer", chkSendServer.isChecked());
 
         startActivity(intent);
     }

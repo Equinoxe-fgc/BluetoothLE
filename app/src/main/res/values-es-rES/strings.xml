@@ -39,4 +39,5 @@
     <string name="gps">Localización</string>
     <string name="LOCATION_DISABLED">La localización está deshabilitada. Habilite el GPS y WiFi (o datos)</string>
     <string name="LOCATION_FAILED">Error de localización. Habilite el GPS y WiFi (o datos)</string>
+    <string name="EnvioAservidor">Enviar datos a servidor</string>
 </resources>
