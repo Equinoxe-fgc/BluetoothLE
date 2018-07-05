@@ -226,11 +226,13 @@ public class Datos extends AppCompatActivity {
                 int iPuerto = pref.getInt("puerto", 8080);
 
                 envioAsync = new EnvioDatosSocket(sServer, iPuerto, 18);
-                if (!envioAsync.isConnectionOK()) {
-                    Toast.makeText(this, getResources().getString(R.string.ERROR_CONEXION_RED), Toast.LENGTH_SHORT).show();
-                }
+                envioAsync.start();
 
-                envoltorioDatosMovimiento = new EnvoltorioDatos(18);
+                /*if (!envioAsync.isConnectionOK()) {
+                    Toast.makeText(this, getResources().getString(R.string.ERROR_CONEXION_RED), Toast.LENGTH_SHORT).show();
+                }*/
+
+                //envoltorioDatosMovimiento = new EnvoltorioDatos(18);
             }
         }
 
@@ -517,10 +519,8 @@ public class Datos extends AppCompatActivity {
                     movimiento = characteristic.getValue();
 
                     //envoltorioDatosMovimiento.setDatos(movimiento);
-                    if (bSendServer) {
+                    if (bSendServer)
                         envioAsync.setData(movimiento);
-                        envioAsync.start();
-                    }
 
                     procesaMovimiento(movimiento, findGattIndex(gatt));
                     lDatosRecibidos++;

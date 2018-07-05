@@ -3,16 +3,17 @@ package com.equinoxe.bluetoothle;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.Arrays;
 
 
 public class EnvioDatosSocket extends Thread {
     private OutputStream outputStream = null;
     private Socket socket = null;
     private boolean bConnectionOK = true;
-    private boolean bPrimeraVez = true;
     private byte data[];
-    String sServer;
-    int iPuerto;
+    private boolean bDataToSend = false;
+    private String sServer;
+    private int iPuerto;
 
     public EnvioDatosSocket(String sServer, int iPuerto, int iTamano) {
         this.sServer = sServer;
@@ -21,8 +22,13 @@ public class EnvioDatosSocket extends Thread {
     }
 
     public void setData(byte data[]) {
-        for (int i = 0; i < data.length; i++)
-            this.data[i] = data[i];
+        synchronized (this) {
+            this.data = Arrays.copyOf(data, 18);
+
+            /*for (int i = 0; i < data.length; i++)
+                this.data[i] = data[i];*/
+            bDataToSend = true;
+        }
     }
 
     public boolean isConnectionOK() {
@@ -31,22 +37,26 @@ public class EnvioDatosSocket extends Thread {
 
     @Override
     public void run() {
-        if (bPrimeraVez) {
-            bPrimeraVez = false;
-            try {
-                socket = new Socket(sServer, iPuerto);
-                outputStream = socket.getOutputStream();
-            } catch (Exception e) {
-                bConnectionOK = false;
-            }
+        try {
+            socket = new Socket(sServer, iPuerto);
+            outputStream = socket.getOutputStream();
+        } catch (Exception e) {
+            bConnectionOK = false;
         }
 
-        try {
-            if (bConnectionOK) {
-                outputStream.write(data);
-                outputStream.flush();
+        if (bConnectionOK)
+            while (true) {
+                if (bDataToSend) {
+                    synchronized (this) {
+                        try {
+                            outputStream.write(data);
+                            bDataToSend = false;
+                            outputStream.flush();
+                        } catch (IOException e) {
+                        }
+                    }
+                }
             }
-        } catch (IOException e) {   }
     }
 
     @Override
