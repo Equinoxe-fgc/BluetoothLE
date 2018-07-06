@@ -44,7 +44,6 @@ import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.text.DecimalFormat;
@@ -114,8 +113,6 @@ public class Datos extends AppCompatActivity {
     boolean bNetworkEnabled;
 
     boolean bNetConnected;
-    Socket socket;
-    OutputStream outputStream;
     EnvioDatosSocket envioAsync;
     EnvoltorioDatos envoltorioDatosMovimiento;
 
@@ -418,8 +415,7 @@ public class Datos extends AppCompatActivity {
 
         try {
             fOut.close();
-            outputStream.close();
-            socket.close();
+            envioAsync.finishSend();
         } catch (Exception e) { }
     }
 
@@ -499,8 +495,10 @@ public class Datos extends AppCompatActivity {
                         if (firstPeriodo < 4) {
                             bConfigPeriodo[iDevice][firstPeriodo] = false;
                             configPeriodo(gatt, firstPeriodo);
-                        } else
+                        } else {
                             bSensing = true;
+                            adaptadorDatos.notifyDataSetChanged();
+                        }
                     }
                 }
             }
