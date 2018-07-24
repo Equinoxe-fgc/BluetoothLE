@@ -58,6 +58,8 @@ public class Datos extends AppCompatActivity {
     final static long lTiempoMedidas = 120 * 1000;  // 120 segundos de espera para grabar
     final static long lTiempoGPS = 10 * 1000;
 
+    final static int SENSOR_MOV_DATA_LEN = 18;
+
     BluetoothGatt btGatt[] = new BluetoothGatt[8];
     BluetoothDataList listaDatos;
     //private final Handler handler = new Handler();
@@ -82,7 +84,10 @@ public class Datos extends AppCompatActivity {
     byte luz[] = new byte[2];
     float fValorLuz;
 
-    byte movimiento[] = new byte[18];
+    byte movimiento[] = new byte[SENSOR_MOV_DATA_LEN];
+    byte movimientoAnterior[] = new byte[SENSOR_MOV_DATA_LEN];
+    long iMovRepetido;
+
     long valorGiroX, valorGiroY, valorGiroZ;
     float fValorGiroX, fValorGiroY, fValorGiroZ;
     long valorAcelX, valorAcelY, valorAcelZ;
@@ -98,9 +103,13 @@ public class Datos extends AppCompatActivity {
     Handler handler;
     long iContadorSegundos;
     FileOutputStream fOut;
+    //FileOutputStream fLog;
     BatteryInfoBT batInfo;
     SimpleDateFormat sdf;
     long lDatosRecibidos;
+    long lDatosPerdidos;
+    byte iSecuencia;
+    boolean bPrimerDato;
     boolean bSensing;
 
     boolean bLocation;
@@ -108,13 +117,11 @@ public class Datos extends AppCompatActivity {
     boolean bLocationConnected;
     LocationManager locManager;
     Location mejorLocaliz;
-    String sLocationProvider;
     boolean bGPSEnabled;
     boolean bNetworkEnabled;
 
     boolean bNetConnected;
     EnvioDatosSocket envioAsync;
-    EnvoltorioDatos envoltorioDatosMovimiento;
 
     DecimalFormat df;
 
@@ -194,6 +201,11 @@ public class Datos extends AppCompatActivity {
         } catch (Exception e) {
             Toast.makeText(this, getResources().getString(R.string.ERROR_FICHERO), Toast.LENGTH_LONG).show();
         }
+
+        /*try {
+            fLog = new FileOutputStream(Environment.getExternalStorageDirectory() + "/Log.txt", false);
+        } catch (Exception e) {}*/
+
         batInfo = new BatteryInfoBT();
 
         BluetoothManager manager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
@@ -280,6 +292,9 @@ public class Datos extends AppCompatActivity {
         iContadorSegundos = lTiempoMedidas / iPeriodo;
         bSensing = false;
         lDatosRecibidos = 0;
+        lDatosPerdidos = 0;
+        bPrimerDato = true;
+        iMovRepetido = 0;
 
         handler = new Handler();
         runOnUiThread(new Runnable(){
@@ -380,7 +395,8 @@ public class Datos extends AppCompatActivity {
                     batInfo.getTemperature() + ":" +
                     batInfo.getCurrentAverage() + ":" +
                     batInfo.getCurrentNow() + " - " +
-                    lDatosRecibidos + "\n";
+                    lDatosRecibidos + " - " +
+                    lDatosPerdidos + "\n";
             fOut.write(sCadena.getBytes());
             fOut.flush();
         } catch (Exception e) {
@@ -402,6 +418,7 @@ public class Datos extends AppCompatActivity {
 
     private void cerrarConexiones() {
         bSensing = false;
+        grabarMedidas();
 
         //envioAsync.cancel(true);
 
@@ -414,6 +431,7 @@ public class Datos extends AppCompatActivity {
             locManager.removeUpdates(locListener);
 
         try {
+            //fLog.close();
             fOut.close();
             envioAsync.finishSend();
         } catch (Exception e) { }
@@ -497,7 +515,7 @@ public class Datos extends AppCompatActivity {
                             configPeriodo(gatt, firstPeriodo);
                         } else {
                             bSensing = true;
-                            adaptadorDatos.notifyDataSetChanged();
+                            //adaptadorDatos.notifyDataSetChanged();
                         }
                     }
                 }
@@ -516,12 +534,38 @@ public class Datos extends AppCompatActivity {
                 } else if (characteristic.getUuid().compareTo(UUIDs.UUID_MOV_DATA) == 0) {
                     movimiento = characteristic.getValue();
 
+                    /*String sCadena = String.format("%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%2X\n",
+                                                    movimiento[18],movimiento[17],movimiento[16],movimiento[15],movimiento[14],movimiento[13],
+                                                    movimiento[12],movimiento[11],movimiento[10],movimiento[9], movimiento[8], movimiento[7],
+                                                    movimiento[6], movimiento[5], movimiento[4], movimiento[3], movimiento[2], movimiento[1],
+                                                    movimiento[0]);
+                    try {
+                        fLog.write(sCadena.getBytes());
+                    } catch (Exception e) {}*/
+
                     //envoltorioDatosMovimiento.setDatos(movimiento);
                     if (bSendServer)
                         envioAsync.setData(movimiento);
 
-                    procesaMovimiento(movimiento, findGattIndex(gatt));
                     lDatosRecibidos++;
+                    procesaMovimiento(movimiento, findGattIndex(gatt));
+
+                    if (bPrimerDato) {
+                        bPrimerDato = false;
+                        iSecuencia = movimiento[SENSOR_MOV_DATA_LEN];
+                    } else {
+                        iSecuencia++;
+                        if (iSecuencia != movimiento[SENSOR_MOV_DATA_LEN]) {
+                            int iMovimientoAux = movimiento[SENSOR_MOV_DATA_LEN] & 0xFF;
+                            int iSecuenciaAux = iSecuencia & 0xFF;
+
+                            lDatosPerdidos += iMovimientoAux - iSecuenciaAux;
+                            iSecuencia = (byte)movimiento[SENSOR_MOV_DATA_LEN];
+                        }
+                    }
+                    /*if (movimientosIguales(movimiento, movimientoAnterior))
+                        iMovRepetido++;*/
+                    movimientoAnterior = movimiento;
                 } else if (characteristic.getUuid().compareTo(UUIDs.UUID_HUM_DATA) == 0) {
                     humedad = characteristic.getValue();
                     procesaHumedad(humedad, findGattIndex(gatt));
@@ -532,6 +576,15 @@ public class Datos extends AppCompatActivity {
             }
         };
     }
+
+    /*boolean movimientosIguales(byte movimiento[], byte movimientoAnterior[]) {
+         boolean bIguales = true;
+
+         for (int i = 0; bIguales && i < SENSOR_MOV_DATA_LEN; i++)
+             bIguales = (movimiento[i] == movimientoAnterior[i]);
+
+         return bIguales;
+    }*/
 
     private void configPeriodo(BluetoothGatt btGatt, int firstPeriodo) {
         BluetoothGattCharacteristic characteristic;

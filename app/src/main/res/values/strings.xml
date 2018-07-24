@@ -14,7 +14,7 @@
     <string name="Motion">Motion</string>
     <string name="Light">Light</string>
     <string name="Temperature">Temperature</string>
-    <string name="Period">Refresh period (50ms - 2550ms):</string>
+    <string name="Period">Refresh period (10ms - 2550ms):</string>
     <string name="HumidityUnit">%rH</string>
     <string name="BarometerUnit">mBar</string>
     <string name="Gyroscope">Gyroscope</string>
