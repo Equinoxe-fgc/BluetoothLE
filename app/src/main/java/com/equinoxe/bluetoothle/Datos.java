@@ -55,7 +55,7 @@ import static android.bluetooth.BluetoothGattCharacteristic.FORMAT_SINT8;
 
 
 public class Datos extends AppCompatActivity {
-    final static long lTiempoMedidas = 120 * 1000;  // 120 segundos de espera para grabar
+    final static long lTiempoMedidas = 10 * 1000;  // 120 segundos de espera para grabar
     final static long lTiempoGPS = 10 * 1000;
 
     final static int SENSOR_MOV_DATA_LEN = 18;
@@ -84,9 +84,9 @@ public class Datos extends AppCompatActivity {
     byte luz[] = new byte[2];
     float fValorLuz;
 
-    byte movimiento[] = new byte[SENSOR_MOV_DATA_LEN];
-    byte movimientoAnterior[] = new byte[SENSOR_MOV_DATA_LEN];
-    long iMovRepetido;
+    byte movimiento[][];
+    //byte movimientoAnterior[] = new byte[SENSOR_MOV_DATA_LEN];
+    //long iMovRepetido;
 
     long valorGiroX, valorGiroY, valorGiroZ;
     float fValorGiroX, fValorGiroY, fValorGiroZ;
@@ -106,10 +106,12 @@ public class Datos extends AppCompatActivity {
     //FileOutputStream fLog;
     BatteryInfoBT batInfo;
     SimpleDateFormat sdf;
-    long lDatosRecibidos;
-    long lDatosPerdidos;
-    byte iSecuencia;
-    boolean bPrimerDato;
+
+    long lDatosRecibidos[];
+    long lDatosPerdidos[];
+    byte iSecuencia[];
+    boolean bPrimerDato[];
+
     boolean bSensing;
 
     boolean bLocation;
@@ -148,6 +150,13 @@ public class Datos extends AppCompatActivity {
         bActivacion = new boolean[iNumDevices][4];
         bConfigPeriodo = new boolean[iNumDevices][4];
 
+        lDatosRecibidos = new long[iNumDevices];
+        lDatosPerdidos = new long[iNumDevices];
+        iSecuencia = new byte[iNumDevices];
+        bPrimerDato = new boolean[iNumDevices];
+
+        movimiento = new byte[iNumDevices][SENSOR_MOV_DATA_LEN];
+
         for (int i = 0; i < iNumDevices; i++)
             sAddresses[i] = extras.getString("Address" + i);
         iPeriodo = extras.getInt("Periodo");
@@ -168,6 +177,11 @@ public class Datos extends AppCompatActivity {
             bSensores[i][1] = bActivacion[i][1] = bConfigPeriodo[i][1] = bHumedad;
             bSensores[i][2] = bActivacion[i][2] = bConfigPeriodo[i][2] = bBarometro || bTemperatura;
             bSensores[i][3] = bActivacion[i][3] = bConfigPeriodo[i][3] = bLuz;
+
+            lDatosRecibidos[i] = 0;
+            lDatosPerdidos[i] = 0;
+            iSecuencia[i] = 0;
+            bPrimerDato[i] = true;
         }
 
         recyclerViewDatos = findViewById(R.id.recycler_viewDatos);
@@ -291,10 +305,7 @@ public class Datos extends AppCompatActivity {
 
         iContadorSegundos = lTiempoMedidas / iPeriodo;
         bSensing = false;
-        lDatosRecibidos = 0;
-        lDatosPerdidos = 0;
-        bPrimerDato = true;
-        iMovRepetido = 0;
+        //iMovRepetido = 0;
 
         handler = new Handler();
         runOnUiThread(new Runnable(){
@@ -333,11 +344,11 @@ public class Datos extends AppCompatActivity {
             bGPSEnabled = bNetworkEnabled = false;
             if (locManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                 bGPSEnabled = true;
-                locManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 10000, 0, locListener, Looper.getMainLooper());
+                locManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, lTiempoGPS, 0, locListener, Looper.getMainLooper());
             }
             if (locManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
                 bNetworkEnabled = true;
-                locManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 10000, 0, locListener, Looper.getMainLooper());
+                locManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, lTiempoGPS, 0, locListener, Looper.getMainLooper());
             }
             if (!bGPSEnabled && !bNetworkEnabled)
                 Toast.makeText(this, getResources().getString(R.string.LOCATION_DISABLED), Toast.LENGTH_SHORT).show();
@@ -388,6 +399,14 @@ public class Datos extends AppCompatActivity {
 
     public void grabarMedidas() {
         getBatteryInfo();
+
+        long lDatosRecibidosTotal = 0;
+        long lDatosPerdidosTotal = 0;
+        for (int i = 0; i < iNumDevices; i++) {
+            lDatosRecibidosTotal += lDatosRecibidos[i];
+            lDatosPerdidosTotal += lDatosPerdidos[i];
+        }
+
         try {
             String sCadena = sdf.format(new Date()) + ":" +
                     batInfo.getBatteryLevel() + ":" +
@@ -395,8 +414,8 @@ public class Datos extends AppCompatActivity {
                     batInfo.getTemperature() + ":" +
                     batInfo.getCurrentAverage() + ":" +
                     batInfo.getCurrentNow() + " - " +
-                    lDatosRecibidos + " - " +
-                    lDatosPerdidos + "\n";
+                    lDatosRecibidosTotal + " - " +
+                    lDatosPerdidosTotal + "\n";
             fOut.write(sCadena.getBytes());
             fOut.flush();
         } catch (Exception e) {
@@ -404,15 +423,13 @@ public class Datos extends AppCompatActivity {
         }
     }
 
-
     @Override
-    public void onBackPressed() {
+    protected void onDestroy() {
         cerrarConexiones();
-        super.onBackPressed();
+        super.onDestroy();
     }
 
     public  void btnPararClick(View v) {
-        cerrarConexiones();
         finish();
     }
 
@@ -525,6 +542,8 @@ public class Datos extends AppCompatActivity {
             public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
                 super.onCharacteristicChanged(gatt, characteristic);
 
+                int iDevice = findGattIndex(gatt);
+
                 if (characteristic.getUuid().compareTo(UUIDs.UUID_BAR_DATA) == 0) {
                     barometro = characteristic.getValue();
                     procesaBarometro(barometro, findGattIndex(gatt));
@@ -532,7 +551,7 @@ public class Datos extends AppCompatActivity {
                     luz = characteristic.getValue();
                     procesaLuz(luz, findGattIndex(gatt));
                 } else if (characteristic.getUuid().compareTo(UUIDs.UUID_MOV_DATA) == 0) {
-                    movimiento = characteristic.getValue();
+                    movimiento[iDevice] = characteristic.getValue();
 
                     /*String sCadena = String.format("%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%2X\n",
                                                     movimiento[18],movimiento[17],movimiento[16],movimiento[15],movimiento[14],movimiento[13],
@@ -545,27 +564,28 @@ public class Datos extends AppCompatActivity {
 
                     //envoltorioDatosMovimiento.setDatos(movimiento);
                     if (bSendServer)
-                        envioAsync.setData(movimiento);
+                        envioAsync.setData(movimiento[iDevice]);
 
-                    lDatosRecibidos++;
-                    procesaMovimiento(movimiento, findGattIndex(gatt));
+                    lDatosRecibidos[iDevice]++;
+                    procesaMovimiento(movimiento[iDevice], iDevice);
 
-                    if (bPrimerDato) {
-                        bPrimerDato = false;
-                        iSecuencia = movimiento[SENSOR_MOV_DATA_LEN];
+                    if (bPrimerDato[iDevice]) {
+                        bPrimerDato[iDevice] = false;
+                        iSecuencia[iDevice] = movimiento[iDevice][SENSOR_MOV_DATA_LEN];
                     } else {
-                        iSecuencia++;
-                        if (iSecuencia != movimiento[SENSOR_MOV_DATA_LEN]) {
-                            int iMovimientoAux = movimiento[SENSOR_MOV_DATA_LEN] & 0xFF;
-                            int iSecuenciaAux = iSecuencia & 0xFF;
+                        iSecuencia[iDevice]++;
+                        if (iSecuencia[iDevice] != movimiento[iDevice][SENSOR_MOV_DATA_LEN]) {
+                            if (iSecuencia[iDevice] > movimiento[iDevice][SENSOR_MOV_DATA_LEN])
+                                lDatosPerdidos[iDevice] += (256 - iSecuencia[iDevice] + movimiento[iDevice][SENSOR_MOV_DATA_LEN]);
+                            else
+                                lDatosPerdidos[iDevice] += movimiento[iDevice][SENSOR_MOV_DATA_LEN] - iSecuencia[iDevice];
 
-                            lDatosPerdidos += iMovimientoAux - iSecuenciaAux;
-                            iSecuencia = (byte)movimiento[SENSOR_MOV_DATA_LEN];
+                            iSecuencia[iDevice] = movimiento[iDevice][SENSOR_MOV_DATA_LEN];
                         }
                     }
                     /*if (movimientosIguales(movimiento, movimientoAnterior))
                         iMovRepetido++;*/
-                    movimientoAnterior = movimiento;
+                    //movimientoAnterior = movimiento;
                 } else if (characteristic.getUuid().compareTo(UUIDs.UUID_HUM_DATA) == 0) {
                     humedad = characteristic.getValue();
                     procesaHumedad(humedad, findGattIndex(gatt));
