@@ -58,7 +58,8 @@ public class Datos extends AppCompatActivity {
     final static long lTiempoMedidas = 10 * 1000;  // 120 segundos de espera para grabar
     final static long lTiempoGPS = 10 * 1000;
 
-    final static int SENSOR_MOV_DATA_LEN = 18;
+    final static int SENSOR_MOV_DATA_LEN = 19;
+    final static int SENSOR_MOV_SEC_POS = SENSOR_MOV_DATA_LEN - 1;
 
     BluetoothGatt btGatt[] = new BluetoothGatt[8];
     BluetoothDataList listaDatos;
@@ -571,16 +572,16 @@ public class Datos extends AppCompatActivity {
 
                     if (bPrimerDato[iDevice]) {
                         bPrimerDato[iDevice] = false;
-                        iSecuencia[iDevice] = movimiento[iDevice][SENSOR_MOV_DATA_LEN];
+                        iSecuencia[iDevice] = movimiento[iDevice][SENSOR_MOV_SEC_POS];
                     } else {
                         iSecuencia[iDevice]++;
-                        if (iSecuencia[iDevice] != movimiento[iDevice][SENSOR_MOV_DATA_LEN]) {
-                            if (iSecuencia[iDevice] > movimiento[iDevice][SENSOR_MOV_DATA_LEN])
-                                lDatosPerdidos[iDevice] += (256 - iSecuencia[iDevice] + movimiento[iDevice][SENSOR_MOV_DATA_LEN]);
+                        if (iSecuencia[iDevice] != movimiento[iDevice][SENSOR_MOV_SEC_POS]) {
+                            if (iSecuencia[iDevice] > movimiento[iDevice][SENSOR_MOV_SEC_POS])
+                                lDatosPerdidos[iDevice] += (256 - iSecuencia[iDevice] + movimiento[iDevice][SENSOR_MOV_SEC_POS]);
                             else
-                                lDatosPerdidos[iDevice] += movimiento[iDevice][SENSOR_MOV_DATA_LEN] - iSecuencia[iDevice];
+                                lDatosPerdidos[iDevice] += movimiento[iDevice][SENSOR_MOV_SEC_POS] - iSecuencia[iDevice];
 
-                            iSecuencia[iDevice] = movimiento[iDevice][SENSOR_MOV_DATA_LEN];
+                            iSecuencia[iDevice] = movimiento[iDevice][SENSOR_MOV_SEC_POS];
                         }
                     }
                     /*if (movimientosIguales(movimiento, movimientoAnterior))
