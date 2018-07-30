@@ -15,16 +15,19 @@ public class EnvioDatosSocket extends Thread {
     private boolean bDataToSend = false;
     private String sServer;
     private int iPuerto;
+    private int iTamano;
 
     public EnvioDatosSocket(String sServer, int iPuerto, int iTamano) {
         this.sServer = sServer;
         this.iPuerto = iPuerto;
+        this.iTamano = iTamano;
         data = new byte[iTamano];
     }
 
-    public void setData(byte data[]) {
+    public void setData(byte iDevice, byte data[]) {
         synchronized (this) {
-            this.data = Arrays.copyOf(data, 18);
+            this.data = Arrays.copyOf(data, iTamano);
+            this.data[iTamano - 1] = iDevice;
             bDataToSend = true;
         }
     }

@@ -55,7 +55,7 @@ import static android.bluetooth.BluetoothGattCharacteristic.FORMAT_SINT8;
 
 
 public class Datos extends AppCompatActivity {
-    final static long lTiempoMedidas = 10 * 1000;  // 120 segundos de espera para grabar
+    final static long lTiempoMedidas = 120 * 1000;  // 120 segundos de espera para grabar
     final static long lTiempoGPS = 10 * 1000;
 
     final static int SENSOR_MOV_DATA_LEN = 19;
@@ -249,7 +249,7 @@ public class Datos extends AppCompatActivity {
                 String sServer = pref.getString("server", "127.0.0.1");
                 int iPuerto = pref.getInt("puerto", 8080);
 
-                envioAsync = new EnvioDatosSocket(sServer, iPuerto, 18);
+                envioAsync = new EnvioDatosSocket(sServer, iPuerto, SENSOR_MOV_DATA_LEN + 1);
                 envioAsync.start();
 
                 /*if (!envioAsync.isConnectionOK()) {
@@ -565,7 +565,7 @@ public class Datos extends AppCompatActivity {
 
                     //envoltorioDatosMovimiento.setDatos(movimiento);
                     if (bSendServer)
-                        envioAsync.setData(movimiento[iDevice]);
+                        envioAsync.setData((byte)iDevice, movimiento[iDevice]);
 
                     lDatosRecibidos[iDevice]++;
                     procesaMovimiento(movimiento[iDevice], iDevice);
