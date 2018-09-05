@@ -38,6 +38,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -140,7 +141,7 @@ public class Datos extends AppCompatActivity {
         RecyclerView.LayoutManager layoutManager;
 
         context = this;
-        //getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         df = new DecimalFormat("###.##");
 
@@ -313,16 +314,17 @@ public class Datos extends AppCompatActivity {
             @Override
             public void run(){
                 if (bSensing) {
-                    iContadorSegundos--;
+                    //iContadorSegundos--;
 
-                    if (iContadorSegundos <= 0) {
+                    //if (iContadorSegundos <= 0) {
                         grabarMedidas();
-                        iContadorSegundos = lTiempoMedidas / iPeriodo;
+                        //iContadorSegundos = lTiempoMedidas / iPeriodo;
                         adaptadorDatos.notifyDataSetChanged();
-                    }
+                    //}
                 }
 
-                handler.postDelayed(this, iPeriodo);
+                //handler.postDelayed(this, iPeriodo);
+                handler.postDelayed(this, lTiempoMedidas);
             }
         });
     }
@@ -545,13 +547,13 @@ public class Datos extends AppCompatActivity {
 
                 int iDevice = findGattIndex(gatt);
 
-                if (characteristic.getUuid().compareTo(UUIDs.UUID_BAR_DATA) == 0) {
+                /*if (characteristic.getUuid().compareTo(UUIDs.UUID_BAR_DATA) == 0) {
                     barometro = characteristic.getValue();
                     procesaBarometro(barometro, findGattIndex(gatt));
                 } else if (characteristic.getUuid().compareTo(UUIDs.UUID_OPT_DATA) == 0) {
                     luz = characteristic.getValue();
                     procesaLuz(luz, findGattIndex(gatt));
-                } else if (characteristic.getUuid().compareTo(UUIDs.UUID_MOV_DATA) == 0) {
+                } else if (characteristic.getUuid().compareTo(UUIDs.UUID_MOV_DATA) == 0) {*/
                     movimiento[iDevice] = characteristic.getValue();
 
                     /*String sCadena = String.format("%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%2X\n",
@@ -587,12 +589,12 @@ public class Datos extends AppCompatActivity {
                     /*if (movimientosIguales(movimiento, movimientoAnterior))
                         iMovRepetido++;*/
                     //movimientoAnterior = movimiento;
-                } else if (characteristic.getUuid().compareTo(UUIDs.UUID_HUM_DATA) == 0) {
+                /*} else if (characteristic.getUuid().compareTo(UUIDs.UUID_HUM_DATA) == 0) {
                     humedad = characteristic.getValue();
                     procesaHumedad(humedad, findGattIndex(gatt));
                 } else {
                     Log.e("BluetoothLE", "Dato deslocalizado");
-                }
+                }*/
 
             }
         };
@@ -946,5 +948,49 @@ public class Datos extends AppCompatActivity {
 
         sCadena = df.format(fValorTemperatura) + " " + getString(R.string.TemperatureUnit);
         listaDatos.setTemperatura(iDevice, sCadena);
+    }
+
+    @Override
+    protected void onStart() {
+        try {
+            String sCadena = sdf.format(new Date()) + " - onStart";
+            fOut.write(sCadena.getBytes());
+            fOut.flush();
+        } catch (Exception e) { }
+
+        super.onStart();
+    }
+
+    @Override
+    protected void onStop() {
+        try {
+            String sCadena = sdf.format(new Date()) + " - onStop";
+            fOut.write(sCadena.getBytes());
+            fOut.flush();
+        } catch (Exception e) { }
+
+        super.onStop();
+    }
+
+    @Override
+    protected void onPause() {
+        try {
+            String sCadena = sdf.format(new Date()) + " - onPause";
+            fOut.write(sCadena.getBytes());
+            fOut.flush();
+        } catch (Exception e) { }
+
+        super.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        try {
+            String sCadena = sdf.format(new Date()) + " - onResume";
+            fOut.write(sCadena.getBytes());
+            fOut.flush();
+        } catch (Exception e) { }
+
+        super.onResume();
     }
 }
