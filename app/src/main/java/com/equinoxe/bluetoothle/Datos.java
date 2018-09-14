@@ -141,7 +141,7 @@ public class Datos extends AppCompatActivity {
         RecyclerView.LayoutManager layoutManager;
 
         context = this;
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        //getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         df = new DecimalFormat("###.##");
 
