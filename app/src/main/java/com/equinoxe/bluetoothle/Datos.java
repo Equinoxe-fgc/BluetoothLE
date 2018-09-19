@@ -1,8 +1,6 @@
 package com.equinoxe.bluetoothle;
 
-import android.Manifest;
-import android.app.Activity;
-import android.app.AlertDialog;
+
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -12,41 +10,31 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
-import android.content.pm.PackageManager;
-import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
-import android.net.Network;
 import android.net.NetworkInfo;
 import android.os.BatteryManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.StrictMode;
-import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
 
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.OutputStream;
-import java.net.Socket;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -103,9 +91,8 @@ public class Datos extends AppCompatActivity {
 
     Context context;
     Handler handler;
-    long iContadorSegundos;
+
     FileOutputStream fOut;
-    //FileOutputStream fLog;
     BatteryInfoBT batInfo;
     SimpleDateFormat sdf;
 
@@ -134,8 +121,6 @@ public class Datos extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_datos);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-
-        //StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().permitNetwork().build());
 
         RecyclerView recyclerViewDatos;
         RecyclerView.LayoutManager layoutManager;
@@ -218,12 +203,40 @@ public class Datos extends AppCompatActivity {
             Toast.makeText(this, getResources().getString(R.string.ERROR_FICHERO), Toast.LENGTH_LONG).show();
         }
 
-        /*try {
-            fLog = new FileOutputStream(Environment.getExternalStorageDirectory() + "/Log.txt", false);
-        } catch (Exception e) {}*/
-
         batInfo = new BatteryInfoBT();
 
+        realizarConexiones();
+
+        try {
+            String sCadena = sdf.format(new Date()) + " - onCreate\n";
+            fOut.write(sCadena.getBytes());
+            fOut.flush();
+        } catch (Exception e) { }
+
+        if (bLocationConnected) {
+            txtLongitud.setVisibility(View.VISIBLE);
+            txtLatitud.setVisibility(View.VISIBLE);
+        } else {
+            txtLongitud.setVisibility(View.GONE);
+            txtLatitud.setVisibility(View.GONE);
+        }
+
+        bSensing = false;
+
+        handler = new Handler();
+        runOnUiThread(new Runnable(){
+            @Override
+            public void run(){
+                if (bSensing) {
+                    grabarMedidas();
+                    adaptadorDatos.notifyDataSetChanged();
+                }
+                handler.postDelayed(this, lTiempoMedidas);
+            }
+        });
+    }
+
+    private void realizarConexiones() {
         BluetoothManager manager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
         BluetoothAdapter adapter = manager.getAdapter();
 
@@ -252,82 +265,17 @@ public class Datos extends AppCompatActivity {
 
                 envioAsync = new EnvioDatosSocket(sServer, iPuerto, SENSOR_MOV_DATA_LEN + 1);
                 envioAsync.start();
-
-                /*if (!envioAsync.isConnectionOK()) {
-                    Toast.makeText(this, getResources().getString(R.string.ERROR_CONEXION_RED), Toast.LENGTH_SHORT).show();
-                }*/
-
-                //envoltorioDatosMovimiento = new EnvoltorioDatos(18);
             }
         }
 
         bLocationConnected = bLocation;
         if (bLocation) {
             locManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-
-            /*if (!locManager.isProviderEnabled(LocationManager.GPS_PROVIDER))
-                bGPSEnabled = false;
-            if (!locManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-                bNetworkEnabled = false;
-
-            if (!bGPSEnabled && !bNetworkEnabled)
-                Toast.makeText(this, getResources().getString(R.string.LOCATION_DISABLED), Toast.LENGTH_SHORT).show();
-            } else {
-                Criteria criterio = new Criteria();
-                criterio.setCostAllowed(false);
-                criterio.setAltitudeRequired(false);
-                criterio.setAccuracy(Criteria.ACCURACY_FINE);
-                sLocationProvider = locManager.getBestProvider(criterio, true);
-                try {
-                    if (bNetworkEnabled)
-                        locManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 10000, 0, locListener, Looper.getMainLooper());
-                    else
-                        locManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 10000, 0, locListener, Looper.getMainLooper());
-
-                    Location location = locManager.getLastKnownLocation(sLocationProvider);
-                    if (location != null) {
-                        txtLatitud.setText("Lat: " + location.getLatitude());
-                        txtLongitud.setText("Long: " + location.getLongitude());
-                    }
-                } catch (SecurityException e) {
-                    bLocationConnected = false;
-                    Toast.makeText(this, getResources().getString(R.string.LOCATION_FAILED), Toast.LENGTH_SHORT).show();
-                }
-            }*/
             ultimaLocalizacion();
             activarProveedores();
         }
-        if (bLocationConnected) {
-            txtLongitud.setVisibility(View.VISIBLE);
-            txtLatitud.setVisibility(View.VISIBLE);
-        } else {
-            txtLongitud.setVisibility(View.GONE);
-            txtLatitud.setVisibility(View.GONE);
-        }
-
-        iContadorSegundos = lTiempoMedidas / iPeriodo;
-        bSensing = false;
-        //iMovRepetido = 0;
-
-        handler = new Handler();
-        runOnUiThread(new Runnable(){
-            @Override
-            public void run(){
-                if (bSensing) {
-                    //iContadorSegundos--;
-
-                    //if (iContadorSegundos <= 0) {
-                        grabarMedidas();
-                        //iContadorSegundos = lTiempoMedidas / iPeriodo;
-                        adaptadorDatos.notifyDataSetChanged();
-                    //}
-                }
-
-                //handler.postDelayed(this, iPeriodo);
-                handler.postDelayed(this, lTiempoMedidas);
-            }
-        });
     }
+
 
     private void ultimaLocalizacion() {
         try {
@@ -428,6 +376,12 @@ public class Datos extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        try {
+            String sCadena = sdf.format(new Date()) + " - onDestroy\n";
+            fOut.write(sCadena.getBytes());
+            fOut.flush();
+        } catch (Exception e) { }
+
         cerrarConexiones();
         super.onDestroy();
     }
@@ -953,7 +907,7 @@ public class Datos extends AppCompatActivity {
     @Override
     protected void onStart() {
         try {
-            String sCadena = sdf.format(new Date()) + " - onStart";
+            String sCadena = sdf.format(new Date()) + " - onStart\n";
             fOut.write(sCadena.getBytes());
             fOut.flush();
         } catch (Exception e) { }
@@ -964,7 +918,7 @@ public class Datos extends AppCompatActivity {
     @Override
     protected void onStop() {
         try {
-            String sCadena = sdf.format(new Date()) + " - onStop";
+            String sCadena = sdf.format(new Date()) + " - onStop\n";
             fOut.write(sCadena.getBytes());
             fOut.flush();
         } catch (Exception e) { }
@@ -975,7 +929,7 @@ public class Datos extends AppCompatActivity {
     @Override
     protected void onPause() {
         try {
-            String sCadena = sdf.format(new Date()) + " - onPause";
+            String sCadena = sdf.format(new Date()) + " - onPause\n";
             fOut.write(sCadena.getBytes());
             fOut.flush();
         } catch (Exception e) { }
@@ -986,7 +940,7 @@ public class Datos extends AppCompatActivity {
     @Override
     protected void onResume() {
         try {
-            String sCadena = sdf.format(new Date()) + " - onResume";
+            String sCadena = sdf.format(new Date()) + " - onResume\n";
             fOut.write(sCadena.getBytes());
             fOut.flush();
         } catch (Exception e) { }

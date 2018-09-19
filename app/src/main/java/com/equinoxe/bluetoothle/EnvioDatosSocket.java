@@ -1,21 +1,28 @@
 package com.equinoxe.bluetoothle;
 
+import android.os.Environment;
 import android.util.Log;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 
 
 public class EnvioDatosSocket extends Thread {
     private OutputStream outputStream = null;
+    FileOutputStream fOut = null;
     private Socket socket = null;
+    SimpleDateFormat sdf;
     private byte data[];
     private boolean bDataToSend = false;
     private String sServer;
     private int iPuerto;
     private int iTamano;
+    String sCadena;
 
     public EnvioDatosSocket(String sServer, int iPuerto, int iTamano) {
         this.sServer = sServer;
@@ -50,25 +57,40 @@ public class EnvioDatosSocket extends Thread {
             socket = new Socket(sServer, iPuerto);
             outputStream = socket.getOutputStream();
 
+            sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
+            String currentDateandTime = sdf.format(new Date()) + "\n";
+
+            fOut = new FileOutputStream(Environment.getExternalStorageDirectory() + "/LOG_Envio.txt", true);
+            fOut.write(currentDateandTime.getBytes());
+
             while (!socket.isClosed()) {
                 if (bDataToSend) {
                     synchronized (this) {
                         try {
                             outputStream.write(data);
                             bDataToSend = false;
-                            outputStream.flush();
-                        } catch (IOException e) {
+                            //outputStream.flush();
+                        } catch (Exception e) {
+                            sCadena = sdf.format(new Date()) + " While Exception " + e.getMessage() + "\n";
+                            fOut.write(sCadena.getBytes());
+                            Log.d("EnvioDatosSocket.java", "Error al enviar");
                         }
                     }
                 }
             }
+            fOut.close();
         } catch (Exception e) {
-            Log.d("prueba", "prueba");
+            sCadena = sdf.format(new Date()) + " General Exception " + e.getMessage() + "\n";
+            try {
+                fOut.write(sCadena.getBytes());
+            } catch (IOException d) {  }
+            Log.d("EnvioDatosSocket.java", "Error al crear socket o stream");
         }
     }
 
     @Override
     protected void finalize() throws Throwable {
+        fOut.close();
         if (outputStream != null) outputStream.close();
         if (socket != null) socket.close();
         super.finalize();
