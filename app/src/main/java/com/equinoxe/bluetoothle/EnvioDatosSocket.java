@@ -74,6 +74,15 @@ public class EnvioDatosSocket extends Thread {
                             sCadena = sdf.format(new Date()) + " While Exception " + e.getMessage() + "\n";
                             fOut.write(sCadena.getBytes());
                             Log.d("EnvioDatosSocket.java", "Error al enviar");
+
+                            // Se cierran las conexiones
+                            finishSend();
+
+                            sCadena = sdf.format(new Date()) + " - Reconexión\n";
+                            fOut.write(sCadena.getBytes());
+                            // Se vuelve a crear la conexión
+                            socket = new Socket(sServer, iPuerto);
+                            outputStream = socket.getOutputStream();
                         }
                     }
                 }

@@ -164,19 +164,6 @@ public class MainActivity extends AppCompatActivity {
         };
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {  // Only ask for these permissions on runtime when running Android 6.0 or higher
-/*            switch (ContextCompat.checkSelfPermission(getBaseContext(), Manifest.permission.ACCESS_COARSE_LOCATION)) {
-                case PackageManager.PERMISSION_DENIED:
-                    if (ContextCompat.checkSelfPermission(getBaseContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                        int REQUEST_ACCESS_COARSE_LOCATION = 1;
-                        ActivityCompat.requestPermissions(this,
-                                new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
-                                REQUEST_ACCESS_COARSE_LOCATION);
-                    }
-                    break;
-                case PackageManager.PERMISSION_GRANTED:
-                    break;
-            }*/
-
             int permission = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
             if (permission != PackageManager.PERMISSION_GRANTED) {
                 // We don't have permission so prompt the user

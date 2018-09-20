@@ -1,6 +1,6 @@
 package com.equinoxe.bluetoothle;
 
-
+import android.app.IntentService;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -9,12 +9,10 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.pm.ActivityInfo;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -23,16 +21,9 @@ import android.net.NetworkInfo;
 import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
 import android.os.Looper;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-import android.view.View;
-import android.widget.TextView;
 import android.widget.Toast;
-
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -43,43 +34,40 @@ import java.util.UUID;
 
 import static android.bluetooth.BluetoothGattCharacteristic.FORMAT_SINT8;
 
+public class ServiceDatos extends IntentService {
+    final static long lTiempoGPS = 10 * 1000;
+    final static int SENSOR_MOV_DATA_LEN = 19;
+    final static int SENSOR_MOV_SEC_POS = SENSOR_MOV_DATA_LEN - 1;
 
-public class Datos extends AppCompatActivity {
-    final static long lTiempoMedidas = 120 * 1000;  // 120 segundos de espera para grabar
-    //final static long lTiempoGPS = 10 * 1000;
+    final static int GIROSCOPO    = 0;
+    final static int ACELEROMETRO = 1;
+    final static int MAGNETOMETRO = 2;
+    final static int HUMEDAD      = 3;
+    final static int LUZ          = 4;
+    final static int BAROMETRO    = 5;
+    final static int TEMPERATURA  = 6;
 
-    //final static int SENSOR_MOV_DATA_LEN = 19;
-    //final static int SENSOR_MOV_SEC_POS = SENSOR_MOV_DATA_LEN - 1;
+    final static int LOCALIZACION_LAT  = 7;
+    final static int LOCALIZACION_LONG = 8;
 
-    //BluetoothGatt btGatt[] = new BluetoothGatt[8];
-    BluetoothDataList listaDatos;
-    //private final Handler handler = new Handler();
+    public static final String NOTIFICATION = "com.equinoxe.bluetoothle.android.service.receiver";
 
-    //private Button btnStopDatos;
-    private MiAdaptadorDatos adaptadorDatos;
-    private TextView txtLongitud;
-    private  TextView txtLatitud;
+    SimpleDateFormat sdf;
 
-    private boolean bHumedad, bBarometro, bLuz, bTemperatura, bAcelerometro, bGiroscopo, bMagnetometro;
-    private boolean bSensores[][];
-    private boolean bActivacion[][];
-    private boolean bConfigPeriodo[][];
-    private int iPeriodo;
+    FileOutputStream fOut;
+    BatteryInfoBT batInfo;
+
     private int iNumDevices;
-    private String sAddresses[] = new String[8];
+    private int iPeriodo;
 
-    /*byte barometro[] = new byte[4];
+    byte barometro[] = new byte[4];
     long valorBarometro, valorTemperatura;
     float fValorBarometro, fValorTemperatura;
 
     byte luz[] = new byte[2];
-    float fValorLuz;*/
+    float fValorLuz;
 
-    //byte movimiento[][];
-    //byte movimientoAnterior[] = new byte[SENSOR_MOV_DATA_LEN];
-    //long iMovRepetido;
-
-    /*long valorGiroX, valorGiroY, valorGiroZ;
+    long valorGiroX, valorGiroY, valorGiroZ;
     float fValorGiroX, fValorGiroY, fValorGiroZ;
     long valorAcelX, valorAcelY, valorAcelZ;
     float fValorAcelX, fValorAcelY, fValorAcelZ;
@@ -88,77 +76,66 @@ public class Datos extends AppCompatActivity {
 
     byte humedad[] = new byte[4];
     long valorHumedad;
-    float fValorHumedad;*/
-
-    Handler handler;
-
-    //FileOutputStream fOut;
-    //BatteryInfoBT batInfo;
-    //SimpleDateFormat sdf;
-
-    /*long lDatosRecibidos[];
-    long lDatosPerdidos[];
-    byte iSecuencia[];
-    boolean bPrimerDato[];*/
-
-    boolean bSensing;
+    float fValorHumedad;
 
     boolean bLocation;
-    boolean bSendServer;
-    /*boolean bLocationConnected;
     LocationManager locManager;
     Location mejorLocaliz;
     boolean bGPSEnabled;
-    boolean bNetworkEnabled;*/
+    boolean bNetworkEnabled;
 
-    /*boolean bNetConnected;
-    EnvioDatosSocket envioAsync;*/
+    boolean bNetConnected;
+    EnvioDatosSocket envioAsync;
 
+    BluetoothGatt btGatt[] = new BluetoothGatt[8];
+    private boolean bSensores[][];
+    private boolean bActivacion[][];
+    private boolean bConfigPeriodo[][];
+
+    long lDatosRecibidos[];
+    long lDatosPerdidos[];
+    byte iSecuencia[];
+    boolean bPrimerDato[];
+
+    byte movimiento[][];
+    boolean bSensing;
     DecimalFormat df;
 
+    private boolean bHumedad, bBarometro, bLuz, bTemperatura, bAcelerometro, bGiroscopo, bMagnetometro;
+    private String sAddresses[] = new String[8];
+    boolean bSendServer;
+
+
+    public ServiceDatos() {
+        super("ServiceDatos");
+    }
+
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_datos);
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+    protected void onHandleIntent(Intent intent) {
+        iNumDevices = intent.getIntExtra("NumDevices",1);
+        iPeriodo = intent.getIntExtra("Periodo",20);
+        for (int i = 0; i < iNumDevices; i++)
+            sAddresses[i] = intent.getStringExtra("Address" + i);
+        bHumedad = intent.getBooleanExtra("Humedad", false);
+        bAcelerometro = intent.getBooleanExtra("Acelerometro", true);
+        bGiroscopo = intent.getBooleanExtra("Giroscopo", true);
+        bMagnetometro = intent.getBooleanExtra("Magnetometro", true);
+        bBarometro = intent.getBooleanExtra("Barometro", false);
+        bTemperatura = intent.getBooleanExtra("Temperatura", false);
+        bLuz = intent.getBooleanExtra("Luz", false);
 
-        RecyclerView recyclerViewDatos;
-        RecyclerView.LayoutManager layoutManager;
 
-        //getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
-        df = new DecimalFormat("###.##");
-
-        Bundle extras = getIntent().getExtras();
-        iNumDevices = extras.getInt("NumDevices");
 
         bSensores = new boolean[iNumDevices][4];
         bActivacion = new boolean[iNumDevices][4];
         bConfigPeriodo = new boolean[iNumDevices][4];
 
-        /*lDatosRecibidos = new long[iNumDevices];
+        lDatosRecibidos = new long[iNumDevices];
         lDatosPerdidos = new long[iNumDevices];
         iSecuencia = new byte[iNumDevices];
         bPrimerDato = new boolean[iNumDevices];
 
-        movimiento = new byte[iNumDevices][SENSOR_MOV_DATA_LEN];*/
-
-        for (int i = 0; i < iNumDevices; i++)
-            sAddresses[i] = extras.getString("Address" + i);
-        iPeriodo = extras.getInt("Periodo");
-
-        bHumedad = extras.getBoolean("Humedad");
-        bBarometro = extras.getBoolean("Barometro");
-        bLuz = extras.getBoolean("Luz");
-        bTemperatura = extras.getBoolean("Temperatura");
-        bAcelerometro = extras.getBoolean("Acelerometro");
-        bGiroscopo = extras.getBoolean("Giroscopo");
-        bMagnetometro = extras.getBoolean("Magnetometro");
-
-        bLocation = extras.getBoolean("Location");
-        bSendServer = extras.getBoolean("SendServer");
-
-        /*for (int i = 0; i < iNumDevices; i++) {
+        for (int i = 0; i < iNumDevices; i++) {
             bSensores[i][0] = bActivacion[i][0] = bConfigPeriodo[i][0] = bAcelerometro || bGiroscopo || bMagnetometro;
             bSensores[i][1] = bActivacion[i][1] = bConfigPeriodo[i][1] = bHumedad;
             bSensores[i][2] = bActivacion[i][2] = bConfigPeriodo[i][2] = bBarometro || bTemperatura;
@@ -168,21 +145,13 @@ public class Datos extends AppCompatActivity {
             lDatosPerdidos[i] = 0;
             iSecuencia[i] = 0;
             bPrimerDato[i] = true;
-        }*/
+        }
 
-        recyclerViewDatos = findViewById(R.id.recycler_viewDatos);
-        txtLatitud = findViewById(R.id.textViewLatitud);
-        txtLongitud = findViewById(R.id.textViewLongitud);
+        movimiento = new byte[iNumDevices][SENSOR_MOV_DATA_LEN];
 
-        listaDatos = new BluetoothDataList(iNumDevices, sAddresses);
+        df = new DecimalFormat("###.##");
+        sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
 
-        adaptadorDatos = new MiAdaptadorDatos(this, listaDatos);
-        layoutManager = new LinearLayoutManager(this);
-
-        recyclerViewDatos.setAdapter(adaptadorDatos);
-        recyclerViewDatos.setLayoutManager(layoutManager);
-
-        /*sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
         String currentDateandTime = sdf.format(new Date());
         try {
             File file;
@@ -204,100 +173,10 @@ public class Datos extends AppCompatActivity {
 
         batInfo = new BatteryInfoBT();
 
-        realizarConexiones();*/
-
-        /*try {
-            String sCadena = sdf.format(new Date()) + " - onCreate\n";
-            fOut.write(sCadena.getBytes());
-            fOut.flush();
-        } catch (Exception e) { }*/
-
-        if (bLocation) {
-            txtLongitud.setVisibility(View.VISIBLE);
-            txtLatitud.setVisibility(View.VISIBLE);
-        } else {
-            txtLongitud.setVisibility(View.GONE);
-            txtLatitud.setVisibility(View.GONE);
-        }
-
-        bSensing = false;
-
-        Intent intent = new Intent(this, ServiceDatos.class);
-        // add infos for the service which file to download and where to store
-        intent.putExtra("Periodo", iPeriodo);
-        intent.putExtra("NumDevices", iNumDevices);
-        for (int i = 0; i < iNumDevices; i++)
-            intent.putExtra("Address" + i, sAddresses[i]);
-        intent.putExtra("Humedad", bHumedad);
-        intent.putExtra("Barometro", bBarometro);
-        intent.putExtra("Luz", bLuz);
-        intent.putExtra("Temperatura", bTemperatura);
-        intent.putExtra("Acelerometro", bAcelerometro);
-        intent.putExtra("Giroscopo", bGiroscopo);
-        intent.putExtra("Magnetometro", bMagnetometro);
-        intent.putExtra("Location", bLocation);
-        intent.putExtra("SendServer", bSendServer);
-
-        startService(intent);
-
-
-        handler = new Handler();
-        runOnUiThread(new Runnable(){
-            @Override
-            public void run(){
-                if (bSensing) {
-                    //grabarMedidas();
-                    adaptadorDatos.notifyDataSetChanged();
-                }
-                handler.postDelayed(this, lTiempoMedidas);
-            }
-        });
+        realizarConexiones();
     }
 
-    private BroadcastReceiver receiver = new BroadcastReceiver() {
-
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            Bundle bundle = intent.getExtras();
-            if (bundle != null) {
-                int iSensor = bundle.getInt("Sensor");
-                int iDevice = bundle.getInt("Device");
-                String sCadena = bundle.getString("Cadena");
-                switch (iSensor) {
-                    case ServiceDatos.GIROSCOPO:
-                        listaDatos.setMovimiento1(iDevice, sCadena);
-                        break;
-                    case ServiceDatos.ACELEROMETRO:
-                        listaDatos.setMovimiento2(iDevice, sCadena);
-                        break;
-                    case ServiceDatos.MAGNETOMETRO:
-                        listaDatos.setMovimiento3(iDevice, sCadena);
-                        break;
-                    case ServiceDatos.HUMEDAD:
-                        listaDatos.setHumedad(iDevice, sCadena);
-                        break;
-                    case ServiceDatos.LUZ:
-                        listaDatos.setLuz(iDevice, sCadena);
-                        break;
-                    case ServiceDatos.BAROMETRO:
-                        listaDatos.setBarometro(iDevice, sCadena);
-                        break;
-                    case ServiceDatos.TEMPERATURA:
-                        listaDatos.setTemperatura(iDevice, sCadena);
-                        break;
-                    case ServiceDatos.LOCALIZACION_LAT:
-                        txtLatitud.setText("Lat: " + sCadena);
-                        break;
-                    case ServiceDatos.LOCALIZACION_LONG:
-                        txtLongitud.setText("Long: " + sCadena);
-                        break;
-                }
-            }
-        }
-    };
-
-
-/*    private void realizarConexiones() {
+    private void realizarConexiones() {
         BluetoothManager manager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
         BluetoothAdapter adapter = manager.getAdapter();
 
@@ -310,7 +189,7 @@ public class Datos extends AppCompatActivity {
         bNetConnected = false;
         if (bSendServer) {
             try {
-                ConnectivityManager check = (ConnectivityManager) this.context.getSystemService(Context.CONNECTIVITY_SERVICE);
+                ConnectivityManager check = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
                 NetworkInfo info = check.getActiveNetworkInfo();
                 if (!info.isConnected()) {
                     Toast.makeText(this, getResources().getString(R.string.ERROR_RED), Toast.LENGTH_LONG).show();
@@ -329,16 +208,14 @@ public class Datos extends AppCompatActivity {
             }
         }
 
-        bLocationConnected = bLocation;
         if (bLocation) {
             locManager = (LocationManager) getSystemService(LOCATION_SERVICE);
             ultimaLocalizacion();
             activarProveedores();
         }
-    }*/
+    }
 
-
-    /*private void ultimaLocalizacion() {
+    private void ultimaLocalizacion() {
         try {
             if (locManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                 actualizaMejorLocaliz(locManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
@@ -371,8 +248,8 @@ public class Datos extends AppCompatActivity {
 
     private void actualizaMejorLocaliz(Location localiz) {
         if (localiz != null && (mejorLocaliz == null ||
-                                localiz.getAccuracy() < 2 * mejorLocaliz.getAccuracy() ||
-                                localiz.getTime() - mejorLocaliz.getTime() > 20000)) {
+                localiz.getAccuracy() < 2 * mejorLocaliz.getAccuracy() ||
+                localiz.getTime() - mejorLocaliz.getTime() > 20000)) {
             mejorLocaliz = localiz;
         }
     }
@@ -380,8 +257,8 @@ public class Datos extends AppCompatActivity {
     public LocationListener locListener = new LocationListener() {
         public void onLocationChanged(Location location) {
             actualizaMejorLocaliz(location);
-            txtLatitud.setText("Lat: " + mejorLocaliz.getLatitude());
-            txtLongitud.setText("Long: " + mejorLocaliz.getLongitude());
+            publishSensorValues(LOCALIZACION_LAT, 0, Double.toString(mejorLocaliz.getLatitude()));
+            publishSensorValues(LOCALIZACION_LONG, 0, Double.toString(mejorLocaliz.getLongitude()));
         }
 
         public void onProviderDisabled(String provider) {
@@ -399,7 +276,7 @@ public class Datos extends AppCompatActivity {
 
     private void getBatteryInfo() {
         IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        Intent batteryStatus = context.registerReceiver(null, ifilter);
+        Intent batteryStatus = registerReceiver(null, ifilter);
         batInfo.setBatteryLevel(batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1));
         batInfo.setVoltaje(batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1));
         batInfo.setTemperature(batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1));
@@ -433,25 +310,9 @@ public class Datos extends AppCompatActivity {
         } catch (Exception e) {
             Log.e("Fichero de resultados", e.getMessage(), e);
         }
-    }*/
-
-    /*@Override
-    protected void onDestroy() {
-        try {
-            String sCadena = sdf.format(new Date()) + " - onDestroy\n";
-            fOut.write(sCadena.getBytes());
-            fOut.flush();
-        } catch (Exception e) { }
-
-        cerrarConexiones();
-        super.onDestroy();
-    }*/
-
-    public  void btnPararClick(View v) {
-        finish();
     }
 
-    /*private void cerrarConexiones() {
+    private void cerrarConexiones() {
         bSensing = false;
         grabarMedidas();
 
@@ -462,7 +323,7 @@ public class Datos extends AppCompatActivity {
             btGatt[i].close();
         }
 
-        if (bLocationConnected)
+        if (bLocation)
             locManager.removeUpdates(locListener);
 
         try {
@@ -470,9 +331,9 @@ public class Datos extends AppCompatActivity {
             fOut.close();
             envioAsync.finishSend();
         } catch (Exception e) { }
-    }*/
+    }
 
-    /*private int findGattIndex(BluetoothGatt btGatt) {
+    private int findGattIndex(BluetoothGatt btGatt) {
         int iIndex = 0;
         String sAddress = btGatt.getDevice().getAddress();
 
@@ -569,7 +430,7 @@ public class Datos extends AppCompatActivity {
                     luz = characteristic.getValue();
                     procesaLuz(luz, findGattIndex(gatt));
                 } else if (characteristic.getUuid().compareTo(UUIDs.UUID_MOV_DATA) == 0) {*/
-                    //movimiento[iDevice] = characteristic.getValue();
+                movimiento[iDevice] = characteristic.getValue();
 
                     /*String sCadena = String.format("%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%2X\n",
                                                     movimiento[18],movimiento[17],movimiento[16],movimiento[15],movimiento[14],movimiento[13],
@@ -580,30 +441,30 @@ public class Datos extends AppCompatActivity {
                         fLog.write(sCadena.getBytes());
                     } catch (Exception e) {}*/
 
-                    //envoltorioDatosMovimiento.setDatos(movimiento);
-                    /*if (bSendServer)
-                        envioAsync.setData((byte)iDevice, movimiento[iDevice]);
+                //envoltorioDatosMovimiento.setDatos(movimiento);
+                if (bSendServer)
+                    envioAsync.setData((byte)iDevice, movimiento[iDevice]);
 
-                    lDatosRecibidos[iDevice]++;
-                    procesaMovimiento(movimiento[iDevice], iDevice);
+                lDatosRecibidos[iDevice]++;
+                procesaMovimiento(movimiento[iDevice], iDevice);
 
-                    if (bPrimerDato[iDevice]) {
-                        bPrimerDato[iDevice] = false;
+                if (bPrimerDato[iDevice]) {
+                    bPrimerDato[iDevice] = false;
+                    iSecuencia[iDevice] = movimiento[iDevice][SENSOR_MOV_SEC_POS];
+                } else {
+                    iSecuencia[iDevice]++;
+                    if (iSecuencia[iDevice] != movimiento[iDevice][SENSOR_MOV_SEC_POS]) {
+                        if (iSecuencia[iDevice] > movimiento[iDevice][SENSOR_MOV_SEC_POS])
+                            lDatosPerdidos[iDevice] += (256 - iSecuencia[iDevice] + movimiento[iDevice][SENSOR_MOV_SEC_POS]);
+                        else
+                            lDatosPerdidos[iDevice] += movimiento[iDevice][SENSOR_MOV_SEC_POS] - iSecuencia[iDevice];
+
                         iSecuencia[iDevice] = movimiento[iDevice][SENSOR_MOV_SEC_POS];
-                    } else {
-                        iSecuencia[iDevice]++;
-                        if (iSecuencia[iDevice] != movimiento[iDevice][SENSOR_MOV_SEC_POS]) {
-                            if (iSecuencia[iDevice] > movimiento[iDevice][SENSOR_MOV_SEC_POS])
-                                lDatosPerdidos[iDevice] += (256 - iSecuencia[iDevice] + movimiento[iDevice][SENSOR_MOV_SEC_POS]);
-                            else
-                                lDatosPerdidos[iDevice] += movimiento[iDevice][SENSOR_MOV_SEC_POS] - iSecuencia[iDevice];
-
-                            iSecuencia[iDevice] = movimiento[iDevice][SENSOR_MOV_SEC_POS];
-                        }
-                    }*/
+                    }
+                }
                     /*if (movimientosIguales(movimiento, movimientoAnterior))
                         iMovRepetido++;*/
-                    //movimientoAnterior = movimiento;
+                //movimientoAnterior = movimiento;
                 /*} else if (characteristic.getUuid().compareTo(UUIDs.UUID_HUM_DATA) == 0) {
                     humedad = characteristic.getValue();
                     procesaHumedad(humedad, findGattIndex(gatt));
@@ -611,20 +472,11 @@ public class Datos extends AppCompatActivity {
                     Log.e("BluetoothLE", "Dato deslocalizado");
                 }*/
 
-            /*}
+            }
         };
-    }*/
+    }
 
-    /*boolean movimientosIguales(byte movimiento[], byte movimientoAnterior[]) {
-         boolean bIguales = true;
-
-         for (int i = 0; bIguales && i < SENSOR_MOV_DATA_LEN; i++)
-             bIguales = (movimiento[i] == movimientoAnterior[i]);
-
-         return bIguales;
-    }*/
-
-    /*private void configPeriodo(BluetoothGatt btGatt, int firstPeriodo) {
+    private void configPeriodo(BluetoothGatt btGatt, int firstPeriodo) {
         BluetoothGattCharacteristic characteristic;
 
         characteristic = btGatt.getService(getServerUUID(firstPeriodo)).getCharacteristic(getPeriodoUUID(firstPeriodo));
@@ -817,7 +669,8 @@ public class Datos extends AppCompatActivity {
         sCadena = "G -> X: " + df.format(fValorGiroX) + " " + getString(R.string.GyroscopeUnit) + " ";
         sCadena += "   Y: " + df.format(fValorGiroY) + " " + getString(R.string.GyroscopeUnit) + " ";
         sCadena += "   Z: " + df.format(fValorGiroZ) + " " + getString(R.string.GyroscopeUnit);
-        listaDatos.setMovimiento1(iDevice, sCadena);
+        //listaDatos.setMovimiento1(iDevice, sCadena);
+        publishSensorValues(GIROSCOPO, iDevice,sCadena);
 
 
         // Acelerómetro
@@ -851,7 +704,8 @@ public class Datos extends AppCompatActivity {
         sCadena = "A -> X: " + df.format(fValorAcelX) + " " + getString(R.string.AccelerometerUnit) + " ";
         sCadena += "   Y: " + df.format(fValorAcelY) + " " + getString(R.string.AccelerometerUnit) + " ";
         sCadena += "   Z: " + df.format(fValorAcelZ) + " " + getString(R.string.AccelerometerUnit);
-        listaDatos.setMovimiento2(iDevice, sCadena);
+        //listaDatos.setMovimiento2(iDevice, sCadena);
+        publishSensorValues(ACELEROMETRO, iDevice,sCadena);
 
 
         // Magnetómetro
@@ -885,7 +739,8 @@ public class Datos extends AppCompatActivity {
         sCadena =  "M -> X: " + Float.toString(fValorMagX) + " " + getString(R.string.MagnetometerUnit) + " ";
         sCadena += "   Y: " + Float.toString(fValorMagY) + " " + getString(R.string.MagnetometerUnit) + " ";
         sCadena += "   Z: " + Float.toString(fValorMagZ) + " " + getString(R.string.MagnetometerUnit);
-        listaDatos.setMovimiento3(iDevice, sCadena);
+        //listaDatos.setMovimiento3(iDevice, sCadena);
+        publishSensorValues(MAGNETOMETRO, iDevice,sCadena);
     }
 
     private void procesaHumedad(byte humedad[], int iDevice) {
@@ -903,7 +758,8 @@ public class Datos extends AppCompatActivity {
         fValorHumedad = valorHumedad / 65536;
 
         String sCadena = Float.toString(fValorHumedad) + " " + getString(R.string.HumidityUnit);
-        listaDatos.setHumedad(iDevice, sCadena);
+        //listaDatos.setHumedad(iDevice, sCadena);
+        publishSensorValues(HUMEDAD, iDevice,sCadena);
     }
 
     private void procesaLuz(byte luz[], int iDevice) {
@@ -921,7 +777,8 @@ public class Datos extends AppCompatActivity {
         fValorLuz = (float)auxM * (((float) auxE) / 100);
 
         String sCadena = df.format(fValorLuz) + " " + getString(R.string.LightUnit);
-        listaDatos.setLuz(iDevice, sCadena);
+        //listaDatos.setLuz(iDevice, sCadena);
+        publishSensorValues(LUZ, iDevice,sCadena);
     }
 
     private void procesaBarometro(byte barometro[], int iDevice) {
@@ -943,7 +800,8 @@ public class Datos extends AppCompatActivity {
         fValorBarometro = valorBarometro / 100;
 
         String sCadena = df.format(fValorBarometro) + " " + getString(R.string.BarometerUnit);
-        listaDatos.setBarometro(iDevice, sCadena);
+        // listaDatos.setBarometro(iDevice, sCadena);
+        publishSensorValues(BAROMETRO, iDevice,sCadena);
 
 
         // Temperatura
@@ -962,50 +820,20 @@ public class Datos extends AppCompatActivity {
         fValorTemperatura = valorTemperatura / 100;
 
         sCadena = df.format(fValorTemperatura) + " " + getString(R.string.TemperatureUnit);
-        listaDatos.setTemperatura(iDevice, sCadena);
-    }*/
-
-    /*@Override
-    protected void onStart() {
-        try {
-            String sCadena = sdf.format(new Date()) + " - onStart\n";
-            fOut.write(sCadena.getBytes());
-            fOut.flush();
-        } catch (Exception e) { }
-
-        super.onStart();
+        //listaDatos.setTemperatura(iDevice, sCadena);
+        publishSensorValues(TEMPERATURA, iDevice,sCadena);
     }
 
-    @Override
-    protected void onStop() {
-        try {
-            String sCadena = sdf.format(new Date()) + " - onStop\n";
-            fOut.write(sCadena.getBytes());
-            fOut.flush();
-        } catch (Exception e) { }
 
-        super.onStop();
+
+
+
+
+    private void publishSensorValues(int iSensor, int iDevice, String sCadena) {
+        Intent intent = new Intent(NOTIFICATION);
+        intent.putExtra("Sensor", iSensor);
+        intent.putExtra("Device", iDevice);
+        intent.putExtra("Cadena", sCadena);
+        sendBroadcast(intent);
     }
-
-    @Override
-    protected void onPause() {
-        try {
-            String sCadena = sdf.format(new Date()) + " - onPause\n";
-            fOut.write(sCadena.getBytes());
-            fOut.flush();
-        } catch (Exception e) { }
-
-        super.onPause();
-    }
-
-    @Override
-    protected void onResume() {
-        try {
-            String sCadena = sdf.format(new Date()) + " - onResume\n";
-            fOut.write(sCadena.getBytes());
-            fOut.flush();
-        } catch (Exception e) { }
-
-        super.onResume();
-    }*/
 }

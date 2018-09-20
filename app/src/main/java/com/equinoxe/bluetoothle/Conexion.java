@@ -228,31 +228,6 @@ public class Conexion extends AppCompatActivity {
         btGatt.disconnect();
         btGatt.close();
 
-        /*if (chkGPS.isChecked()) {
-            final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            final String action = Settings.LOCATION_SERVICE;
-
-            final String message = "Enable either GPS or any other location"
-                    + " service to find current location.  Click OK to go to"
-                    + " location services settings to let you do so.";
-
-            builder.setMessage(message)
-                    .setPositiveButton("OK",
-                            new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface d, int id) {
-                                    startActivity(new Intent(action));
-                                    d.dismiss();
-                                }
-                            })
-                    .setNegativeButton("Cancel",
-                            new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface d, int id) {
-                                    d.cancel();
-                                }
-                            });
-            builder.create().show();
-        }*/
-
         Intent intent = new Intent(this, Datos.class);
         intent.putExtra("NumDevices", iNumDevices);
         for (int i = 0; i < iNumDevices; i++)
