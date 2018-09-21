@@ -124,8 +124,6 @@ public class ServiceDatos extends IntentService {
         bTemperatura = intent.getBooleanExtra("Temperatura", false);
         bLuz = intent.getBooleanExtra("Luz", false);
 
-
-
         bSensores = new boolean[iNumDevices][4];
         bActivacion = new boolean[iNumDevices][4];
         bConfigPeriodo = new boolean[iNumDevices][4];
@@ -825,9 +823,11 @@ public class ServiceDatos extends IntentService {
     }
 
 
-
-
-
+    @Override
+    public void onDestroy() {
+        cerrarConexiones();
+        super.onDestroy();
+    }
 
     private void publishSensorValues(int iSensor, int iDevice, String sCadena) {
         Intent intent = new Intent(NOTIFICATION);

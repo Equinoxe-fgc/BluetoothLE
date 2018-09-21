@@ -34,6 +34,9 @@
             android:label="Datos"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity android:name=".Settings"></activity>
+
+        <service android:name="com.equinoxe.bluetoothle.ServiceDatos" >
+        </service>
     </application>
 
 </manifest>

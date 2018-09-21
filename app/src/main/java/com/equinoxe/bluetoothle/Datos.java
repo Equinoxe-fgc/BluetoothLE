@@ -222,6 +222,8 @@ public class Datos extends AppCompatActivity {
 
         bSensing = false;
 
+        registerReceiver(receiver, new IntentFilter(ServiceDatos.NOTIFICATION));
+
         Intent intent = new Intent(this, ServiceDatos.class);
         // add infos for the service which file to download and where to store
         intent.putExtra("Periodo", iPeriodo);
@@ -249,7 +251,8 @@ public class Datos extends AppCompatActivity {
                     //grabarMedidas();
                     adaptadorDatos.notifyDataSetChanged();
                 }
-                handler.postDelayed(this, lTiempoMedidas);
+                //handler.postDelayed(this, lTiempoMedidas);
+                handler.postDelayed(this, 2000);
             }
         });
     }
@@ -258,6 +261,7 @@ public class Datos extends AppCompatActivity {
 
         @Override
         public void onReceive(Context context, Intent intent) {
+            bSensing = true;
             Bundle bundle = intent.getExtras();
             if (bundle != null) {
                 int iSensor = bundle.getInt("Sensor");
@@ -448,6 +452,7 @@ public class Datos extends AppCompatActivity {
     }*/
 
     public  void btnPararClick(View v) {
+        //stopService(new Intent(this, ServiceDatos.class));
         finish();
     }
 
