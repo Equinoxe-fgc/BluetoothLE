@@ -30,12 +30,15 @@ import java.io.FileOutputStream;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 
 import static android.bluetooth.BluetoothGattCharacteristic.FORMAT_SINT8;
 
 public class ServiceDatos extends IntentService {
-    final static long lTiempoGPS = 10 * 1000;
+    final static long lTiempoGPS = 10 * 1000;                   // Tiempo de toma de muestras de GPS (en ms)
+    final static long lTiempoGrabacionDatos = 120 * 1000;       // Tiempo de grabación de las estadísticas (en ms)
     final static int SENSOR_MOV_DATA_LEN = 19;
     final static int SENSOR_MOV_SEC_POS = SENSOR_MOV_DATA_LEN - 1;
 
@@ -46,7 +49,6 @@ public class ServiceDatos extends IntentService {
     final static int LUZ          = 4;
     final static int BAROMETRO    = 5;
     final static int TEMPERATURA  = 6;
-
     final static int LOCALIZACION_LAT  = 7;
     final static int LOCALIZACION_LONG = 8;
 
@@ -124,6 +126,9 @@ public class ServiceDatos extends IntentService {
         bTemperatura = intent.getBooleanExtra("Temperatura", false);
         bLuz = intent.getBooleanExtra("Luz", false);
 
+        bLocation = intent.getBooleanExtra("Location", false);
+        bSendServer = intent.getBooleanExtra("SendServer", false);
+
         bSensores = new boolean[iNumDevices][4];
         bActivacion = new boolean[iNumDevices][4];
         bConfigPeriodo = new boolean[iNumDevices][4];
@@ -171,7 +176,18 @@ public class ServiceDatos extends IntentService {
 
         batInfo = new BatteryInfoBT();
 
+        TimerTask timerTask = new TimerTask() {
+            public void run() {
+                grabarMedidas();
+            }
+        };
+
+        Timer timer = new Timer();
+        timer.scheduleAtFixedRate(timerTask, lTiempoGrabacionDatos, lTiempoGrabacionDatos);
+
         realizarConexiones();
+
+        while(true);
     }
 
     private void realizarConexiones() {
@@ -199,7 +215,7 @@ public class ServiceDatos extends IntentService {
             if (bNetConnected) {
                 SharedPreferences pref = getApplicationContext().getSharedPreferences("Settings", MODE_PRIVATE);
                 String sServer = pref.getString("server", "127.0.0.1");
-                int iPuerto = pref.getInt("puerto", 8080);
+                int iPuerto = pref.getInt("puerto", 8000);
 
                 envioAsync = new EnvioDatosSocket(sServer, iPuerto, SENSOR_MOV_DATA_LEN + 1);
                 envioAsync.start();
