@@ -61,6 +61,9 @@ public class ServiceDatos extends IntentService {
 
     private int iNumDevices;
     private int iPeriodo;
+    private long lTiempoRefrescoDatos;
+    private long lMensajesParaEnvio;
+    private long lMensajesPorSegundo;
 
     byte barometro[] = new byte[4];
     long valorBarometro, valorTemperatura;
@@ -89,7 +92,7 @@ public class ServiceDatos extends IntentService {
     boolean bNetConnected;
     EnvioDatosSocket envioAsync;
 
-    BluetoothGatt btGatt[] = new BluetoothGatt[8];
+    BluetoothGatt btGatt[];
     private boolean bSensores[][];
     private boolean bActivacion[][];
     private boolean bConfigPeriodo[][];
@@ -116,6 +119,9 @@ public class ServiceDatos extends IntentService {
     protected void onHandleIntent(Intent intent) {
         iNumDevices = intent.getIntExtra("NumDevices",1);
         iPeriodo = intent.getIntExtra("Periodo",20);
+        lTiempoRefrescoDatos = intent.getLongExtra("Refresco", 120000);
+        lMensajesParaEnvio = lTiempoRefrescoDatos / iPeriodo;
+        lMensajesPorSegundo = 1000 / iPeriodo;
         for (int i = 0; i < iNumDevices; i++)
             sAddresses[i] = intent.getStringExtra("Address" + i);
         bHumedad = intent.getBooleanExtra("Humedad", false);
@@ -151,6 +157,8 @@ public class ServiceDatos extends IntentService {
         }
 
         movimiento = new byte[iNumDevices][SENSOR_MOV_DATA_LEN];
+
+        btGatt = new BluetoothGatt[iNumDevices];
 
         df = new DecimalFormat("###.##");
         sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
@@ -460,7 +468,9 @@ public class ServiceDatos extends IntentService {
                     envioAsync.setData((byte)iDevice, movimiento[iDevice]);
 
                 lDatosRecibidos[iDevice]++;
-                procesaMovimiento(movimiento[iDevice], iDevice);
+
+                // Se le suma lMensajesPorSegundo para que envío los datos 1 segundo antes de que se refresque el panel de datos
+                procesaMovimiento(movimiento[iDevice], iDevice, ((lDatosRecibidos[iDevice] + lMensajesPorSegundo) % lMensajesParaEnvio) == 0);
 
                 if (bPrimerDato[iDevice]) {
                     bPrimerDato[iDevice] = false;
@@ -476,9 +486,7 @@ public class ServiceDatos extends IntentService {
                         iSecuencia[iDevice] = movimiento[iDevice][SENSOR_MOV_SEC_POS];
                     }
                 }
-                    /*if (movimientosIguales(movimiento, movimientoAnterior))
-                        iMovRepetido++;*/
-                //movimientoAnterior = movimiento;
+
                 /*} else if (characteristic.getUuid().compareTo(UUIDs.UUID_HUM_DATA) == 0) {
                     humedad = characteristic.getValue();
                     procesaHumedad(humedad, findGattIndex(gatt));
@@ -648,7 +656,7 @@ public class ServiceDatos extends IntentService {
         return first;
     }
 
-    private void procesaMovimiento(byte movimiento[], int iDevice) {
+    private void procesaMovimiento(byte movimiento[], int iDevice, boolean bEnviarDatos) {
         long aux;
         String sCadena;
 
@@ -683,8 +691,9 @@ public class ServiceDatos extends IntentService {
         sCadena = "G -> X: " + df.format(fValorGiroX) + " " + getString(R.string.GyroscopeUnit) + " ";
         sCadena += "   Y: " + df.format(fValorGiroY) + " " + getString(R.string.GyroscopeUnit) + " ";
         sCadena += "   Z: " + df.format(fValorGiroZ) + " " + getString(R.string.GyroscopeUnit);
-        //listaDatos.setMovimiento1(iDevice, sCadena);
-        publishSensorValues(GIROSCOPO, iDevice,sCadena);
+
+        if (bEnviarDatos)
+            publishSensorValues(GIROSCOPO, iDevice,sCadena);
 
 
         // Acelerómetro
@@ -718,8 +727,9 @@ public class ServiceDatos extends IntentService {
         sCadena = "A -> X: " + df.format(fValorAcelX) + " " + getString(R.string.AccelerometerUnit) + " ";
         sCadena += "   Y: " + df.format(fValorAcelY) + " " + getString(R.string.AccelerometerUnit) + " ";
         sCadena += "   Z: " + df.format(fValorAcelZ) + " " + getString(R.string.AccelerometerUnit);
-        //listaDatos.setMovimiento2(iDevice, sCadena);
-        publishSensorValues(ACELEROMETRO, iDevice,sCadena);
+
+        if (bEnviarDatos)
+            publishSensorValues(ACELEROMETRO, iDevice,sCadena);
 
 
         // Magnetómetro
@@ -753,8 +763,8 @@ public class ServiceDatos extends IntentService {
         sCadena =  "M -> X: " + Float.toString(fValorMagX) + " " + getString(R.string.MagnetometerUnit) + " ";
         sCadena += "   Y: " + Float.toString(fValorMagY) + " " + getString(R.string.MagnetometerUnit) + " ";
         sCadena += "   Z: " + Float.toString(fValorMagZ) + " " + getString(R.string.MagnetometerUnit);
-        //listaDatos.setMovimiento3(iDevice, sCadena);
-        publishSensorValues(MAGNETOMETRO, iDevice,sCadena);
+        if (bEnviarDatos)
+            publishSensorValues(MAGNETOMETRO, iDevice,sCadena);
     }
 
     private void procesaHumedad(byte humedad[], int iDevice) {

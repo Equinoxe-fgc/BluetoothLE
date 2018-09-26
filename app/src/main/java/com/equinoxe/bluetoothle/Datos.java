@@ -1,53 +1,26 @@
 package com.equinoxe.bluetoothle;
 
 
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothGatt;
-import android.bluetooth.BluetoothGattCallback;
-import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattDescriptor;
-import android.bluetooth.BluetoothGattService;
-import android.bluetooth.BluetoothManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.os.BatteryManager;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
-import android.os.Looper;
-import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
-import android.widget.Toast;
 
-
-import java.io.File;
-import java.io.FileOutputStream;
 import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.UUID;
-
-import static android.bluetooth.BluetoothGattCharacteristic.FORMAT_SINT8;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 public class Datos extends AppCompatActivity {
-    final static long lTiempoMuestraDatos = 120 * 1000;  // Tiempo de muestra de datos
+    final static long lTiempoRefrescoDatos = 120 * 1000;  // Tiempo de muestra de datos
 
     BluetoothDataList listaDatos;
 
@@ -55,24 +28,10 @@ public class Datos extends AppCompatActivity {
     private TextView txtLongitud;
     private  TextView txtLatitud;
 
-    private boolean bHumedad, bBarometro, bLuz, bTemperatura, bAcelerometro, bGiroscopo, bMagnetometro;
-    private boolean bSensores[][];
-    private boolean bActivacion[][];
-    private boolean bConfigPeriodo[][];
-    private int iPeriodo;
-    private int iNumDevices;
-    private String sAddresses[] = new String[8];
-
     Handler handler;
-
     boolean bSensing;
-
-    boolean bLocation;
-    boolean bSendServer;
-
     DecimalFormat df;
 
-    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -87,26 +46,23 @@ public class Datos extends AppCompatActivity {
         df = new DecimalFormat("###.##");
 
         Bundle extras = getIntent().getExtras();
-        iNumDevices = extras.getInt("NumDevices");
+        int iNumDevices = extras.getInt("NumDevices");
 
-        bSensores = new boolean[iNumDevices][4];
-        bActivacion = new boolean[iNumDevices][4];
-        bConfigPeriodo = new boolean[iNumDevices][4];
-
+        String sAddresses[] = new String[8];
         for (int i = 0; i < iNumDevices; i++)
             sAddresses[i] = extras.getString("Address" + i);
-        iPeriodo = extras.getInt("Periodo");
+        int iPeriodo = extras.getInt("Periodo");
 
-        bHumedad = extras.getBoolean("Humedad");
-        bBarometro = extras.getBoolean("Barometro");
-        bLuz = extras.getBoolean("Luz");
-        bTemperatura = extras.getBoolean("Temperatura");
-        bAcelerometro = extras.getBoolean("Acelerometro");
-        bGiroscopo = extras.getBoolean("Giroscopo");
-        bMagnetometro = extras.getBoolean("Magnetometro");
+        boolean bHumedad = extras.getBoolean("Humedad");
+        boolean bBarometro = extras.getBoolean("Barometro");
+        boolean bLuz = extras.getBoolean("Luz");
+        boolean bTemperatura = extras.getBoolean("Temperatura");
+        boolean bAcelerometro = extras.getBoolean("Acelerometro");
+        boolean bGiroscopo = extras.getBoolean("Giroscopo");
+        boolean bMagnetometro = extras.getBoolean("Magnetometro");
 
-        bLocation = extras.getBoolean("Location");
-        bSendServer = extras.getBoolean("SendServer");
+        boolean bLocation = extras.getBoolean("Location");
+        boolean bSendServer = extras.getBoolean("SendServer");
 
         recyclerViewDatos = findViewById(R.id.recycler_viewDatos);
         txtLatitud = findViewById(R.id.textViewLatitud);
@@ -135,6 +91,7 @@ public class Datos extends AppCompatActivity {
         Intent intent = new Intent(this, ServiceDatos.class);
         // add infos for the service which file to download and where to store
         intent.putExtra("Periodo", iPeriodo);
+        intent.putExtra("Refresco", lTiempoRefrescoDatos);
         intent.putExtra("NumDevices", iNumDevices);
         for (int i = 0; i < iNumDevices; i++)
             intent.putExtra("Address" + i, sAddresses[i]);
@@ -148,11 +105,10 @@ public class Datos extends AppCompatActivity {
         intent.putExtra("Location", bLocation);
         intent.putExtra("SendServer", bSendServer);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+        /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             startForegroundService(intent);
-        else
+        else*/
             startService(intent);
-
 
 
         handler = new Handler();
@@ -162,13 +118,13 @@ public class Datos extends AppCompatActivity {
                 if (bSensing) {
                     adaptadorDatos.notifyDataSetChanged();
                 }
-                handler.postDelayed(this, lTiempoMuestraDatos);
+                handler.postDelayed(this, lTiempoRefrescoDatos);
             }
         });
     }
 
-    private BroadcastReceiver receiver = new BroadcastReceiver() {
 
+    private BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             bSensing = true;
