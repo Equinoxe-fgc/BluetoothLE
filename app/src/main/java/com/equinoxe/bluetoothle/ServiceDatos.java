@@ -175,7 +175,7 @@ public class ServiceDatos extends IntentService {
             } while (file.exists());
 
             fOut = new FileOutputStream(sFichero, false);
-            String sCadena = android.os.Build.MODEL + " " + iNumDevices + " " + iPeriodo + " " + currentDateandTime + "\n";
+            String sCadena = android.os.Build.MODEL + " " + iNumDevices + " " + iPeriodo + " " + bGPSEnabled + " " + bSendServer + " " + currentDateandTime + "\n";
             fOut.write(sCadena.getBytes());
             fOut.flush();
         } catch (Exception e) {

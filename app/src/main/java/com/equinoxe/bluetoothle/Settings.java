@@ -24,7 +24,7 @@ public class Settings extends AppCompatActivity {
 
         SharedPreferences pref = getApplicationContext().getSharedPreferences("Settings", MODE_PRIVATE);
         txtServer.setText(pref.getString("server", "127.0.0.1"));
-        String sCadena = "" + pref.getInt("puerto", 8080);
+        String sCadena = "" + pref.getInt("puerto", 8000);
         txtPuerto.setText(sCadena);
     }
 
