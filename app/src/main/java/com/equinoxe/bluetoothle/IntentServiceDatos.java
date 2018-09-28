@@ -1,6 +1,6 @@
 package com.equinoxe.bluetoothle;
 
-import android.app.Service;
+import android.app.IntentService;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -21,11 +21,7 @@ import android.net.NetworkInfo;
 import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
-import android.os.HandlerThread;
-import android.os.IBinder;
 import android.os.Looper;
-import android.os.Message;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -40,7 +36,7 @@ import java.util.UUID;
 
 import static android.bluetooth.BluetoothGattCharacteristic.FORMAT_SINT8;
 
-public class ServiceDatos extends Service {
+public class IntentServiceDatos extends IntentService {
     final static long lTiempoGPS = 10 * 1000;                   // Tiempo de toma de muestras de GPS (en ms)
     final static long lTiempoGrabacionDatos = 120 * 1000;       // Tiempo de grabación de las estadísticas (en ms)
     final static int SENSOR_MOV_DATA_LEN = 19;
@@ -58,13 +54,6 @@ public class ServiceDatos extends Service {
 
     public static final String NOTIFICATION = "com.equinoxe.bluetoothle.android.service.receiver";
 
-    String sCadenaGiroscopo[];
-    String sCadenaMagnetometro[];
-    String sCadenaAcelerometro[];
-
-    private long lMensajesParaEnvio;
-    private long lMensajesPorSegundo;
-
     SimpleDateFormat sdf;
 
     FileOutputStream fOut;
@@ -73,6 +62,8 @@ public class ServiceDatos extends Service {
     private int iNumDevices;
     private int iPeriodo;
     private long lTiempoRefrescoDatos;
+    private long lMensajesParaEnvio;
+    private long lMensajesPorSegundo;
 
     byte barometro[] = new byte[4];
     long valorBarometro, valorTemperatura;
@@ -119,58 +110,18 @@ public class ServiceDatos extends Service {
     private String sAddresses[] = new String[8];
     boolean bSendServer;
 
-    private Looper mServiceLooper;
-    private ServiceHandler mServiceHandler;
 
-    // Handler that receives messages from the thread
-    private final class ServiceHandler extends Handler {
-        public ServiceHandler(Looper looper) {
-            super(looper);
-        }
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.arg1) {
-                case GIROSCOPO:
-                    publishSensorValues(GIROSCOPO, msg.arg2, sCadenaGiroscopo[msg.arg2]);
-                    break;
-                case MAGNETOMETRO:
-                    publishSensorValues(MAGNETOMETRO, msg.arg2, sCadenaMagnetometro[msg.arg2]);
-                    break;
-                case ACELEROMETRO:
-                    publishSensorValues(ACELEROMETRO, msg.arg2, sCadenaAcelerometro[msg.arg2]);
-                    break;
-            }
-        }
+    public IntentServiceDatos() {
+        super("ServiceDatos");
     }
 
     @Override
-    public void onCreate() {
-        // Start up the thread running the service.  Note that we create a
-        // separate thread because the service normally runs in the process's
-        // main thread, which we don't want to block.  We also make it
-        // background priority so CPU-intensive work will not disrupt our UI.
-        HandlerThread thread = new HandlerThread("ServiceStartArguments", HandlerThread.MIN_PRIORITY);
-        thread.start();
-
-        // Get the HandlerThread's Looper and use it for our Handler
-        mServiceLooper = thread.getLooper();
-        mServiceHandler = new ServiceHandler(mServiceLooper);
-    }
-
-    @Override
-    public IBinder onBind(Intent intent) {
-        // We don't provide binding, so return null
-        return null;
-    }
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
+    protected void onHandleIntent(Intent intent) {
         iNumDevices = intent.getIntExtra("NumDevices",1);
         iPeriodo = intent.getIntExtra("Periodo",20);
         lTiempoRefrescoDatos = intent.getLongExtra("Refresco", 120000);
         lMensajesParaEnvio = lTiempoRefrescoDatos / iPeriodo;
         lMensajesPorSegundo = 1000 / iPeriodo;
-
         for (int i = 0; i < iNumDevices; i++)
             sAddresses[i] = intent.getStringExtra("Address" + i);
         bHumedad = intent.getBooleanExtra("Humedad", false);
@@ -206,10 +157,6 @@ public class ServiceDatos extends Service {
         }
 
         movimiento = new byte[iNumDevices][SENSOR_MOV_DATA_LEN];
-
-        sCadenaGiroscopo = new String[iNumDevices];
-        sCadenaMagnetometro = new String[iNumDevices];
-        sCadenaAcelerometro = new String[iNumDevices];
 
         btGatt = new BluetoothGatt[iNumDevices];
 
@@ -248,11 +195,7 @@ public class ServiceDatos extends Service {
 
         realizarConexiones();
 
-        Message msg = mServiceHandler.obtainMessage();
-        msg.arg1 = startId;
-        mServiceHandler.sendMessage(msg);
-
-        return START_NOT_STICKY;
+        while(true);
     }
 
     private void realizarConexiones() {
@@ -526,6 +469,7 @@ public class ServiceDatos extends Service {
 
                 lDatosRecibidos[iDevice]++;
 
+                // Se le suma lMensajesPorSegundo para que envío los datos 1 segundo antes de que se refresque el panel de datos
                 procesaMovimiento(movimiento[iDevice], iDevice, ((lDatosRecibidos[iDevice] + lMensajesPorSegundo) % lMensajesParaEnvio) == 0);
 
                 if (bPrimerDato[iDevice]) {
@@ -714,6 +658,7 @@ public class ServiceDatos extends Service {
 
     private void procesaMovimiento(byte movimiento[], int iDevice, boolean bEnviarDatos) {
         long aux;
+        String sCadena;
 
         // Giróscopo
         valorGiroX = movimiento[1];
@@ -743,17 +688,12 @@ public class ServiceDatos extends Service {
         valorGiroZ |= aux;
         fValorGiroZ = (float) (((float) valorGiroZ / 65536.0) * 500.0);
 
-        sCadenaGiroscopo[iDevice] = "G -> X: " + df.format(fValorGiroX) + " " + getString(R.string.GyroscopeUnit) + " ";
-        sCadenaGiroscopo[iDevice] += "   Y: " + df.format(fValorGiroY) + " " + getString(R.string.GyroscopeUnit) + " ";
-        sCadenaGiroscopo[iDevice] += "   Z: " + df.format(fValorGiroZ) + " " + getString(R.string.GyroscopeUnit);
+        sCadena = "G -> X: " + df.format(fValorGiroX) + " " + getString(R.string.GyroscopeUnit) + " ";
+        sCadena += "   Y: " + df.format(fValorGiroY) + " " + getString(R.string.GyroscopeUnit) + " ";
+        sCadena += "   Z: " + df.format(fValorGiroZ) + " " + getString(R.string.GyroscopeUnit);
 
-        //publishSensorValues(GIROSCOPO, iDevice,sCadena);
-        if (bEnviarDatos) {
-            Message msg = mServiceHandler.obtainMessage();
-            msg.arg1 = GIROSCOPO;
-            msg.arg2 = iDevice;
-            mServiceHandler.sendMessage(msg);
-        }
+        if (bEnviarDatos)
+            publishSensorValues(GIROSCOPO, iDevice,sCadena);
 
 
         // Acelerómetro
@@ -784,17 +724,12 @@ public class ServiceDatos extends Service {
         valorAcelZ |= aux;
         fValorAcelZ = (float) valorAcelZ / (32768 / 4);
 
-        sCadenaAcelerometro[iDevice] = "A -> X: " + df.format(fValorAcelX) + " " + getString(R.string.AccelerometerUnit) + " ";
-        sCadenaAcelerometro[iDevice] += "   Y: " + df.format(fValorAcelY) + " " + getString(R.string.AccelerometerUnit) + " ";
-        sCadenaAcelerometro[iDevice] += "   Z: " + df.format(fValorAcelZ) + " " + getString(R.string.AccelerometerUnit);
+        sCadena = "A -> X: " + df.format(fValorAcelX) + " " + getString(R.string.AccelerometerUnit) + " ";
+        sCadena += "   Y: " + df.format(fValorAcelY) + " " + getString(R.string.AccelerometerUnit) + " ";
+        sCadena += "   Z: " + df.format(fValorAcelZ) + " " + getString(R.string.AccelerometerUnit);
 
-        //publishSensorValues(ACELEROMETRO, iDevice,sCadena);
-        if (bEnviarDatos) {
-            Message msg = mServiceHandler.obtainMessage();
-            msg.arg1 = ACELEROMETRO;
-            msg.arg2 = iDevice;
-            mServiceHandler.sendMessage(msg);
-        }
+        if (bEnviarDatos)
+            publishSensorValues(ACELEROMETRO, iDevice,sCadena);
 
 
         // Magnetómetro
@@ -825,18 +760,11 @@ public class ServiceDatos extends Service {
         valorMagZ |= aux;
         fValorMagZ = (float) valorMagZ;
 
-        sCadenaMagnetometro[iDevice] =  "M -> X: " + Float.toString(fValorMagX) + " " + getString(R.string.MagnetometerUnit) + " ";
-        sCadenaMagnetometro[iDevice] += "   Y: " + Float.toString(fValorMagY) + " " + getString(R.string.MagnetometerUnit) + " ";
-        sCadenaMagnetometro[iDevice] += "   Z: " + Float.toString(fValorMagZ) + " " + getString(R.string.MagnetometerUnit);
-
-        //publishSensorValues(MAGNETOMETRO, iDevice,sCadena);
-        if (bEnviarDatos) {
-            Message msg = mServiceHandler.obtainMessage();
-            msg.arg1 = MAGNETOMETRO;
-            msg.arg2 = iDevice;
-            mServiceHandler.sendMessage(msg);
-        }
-
+        sCadena =  "M -> X: " + Float.toString(fValorMagX) + " " + getString(R.string.MagnetometerUnit) + " ";
+        sCadena += "   Y: " + Float.toString(fValorMagY) + " " + getString(R.string.MagnetometerUnit) + " ";
+        sCadena += "   Z: " + Float.toString(fValorMagZ) + " " + getString(R.string.MagnetometerUnit);
+        if (bEnviarDatos)
+            publishSensorValues(MAGNETOMETRO, iDevice,sCadena);
     }
 
     private void procesaHumedad(byte humedad[], int iDevice) {

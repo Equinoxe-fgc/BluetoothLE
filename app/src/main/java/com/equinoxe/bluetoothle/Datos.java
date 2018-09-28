@@ -86,8 +86,10 @@ public class Datos extends AppCompatActivity {
 
         bSensing = false;
 
+        //registerReceiver(receiver, new IntentFilter(IntentServiceDatos.NOTIFICATION));
         registerReceiver(receiver, new IntentFilter(ServiceDatos.NOTIFICATION));
 
+        //Intent intent = new Intent(this, IntentServiceDatos.class);
         Intent intent = new Intent(this, ServiceDatos.class);
         // add infos for the service which file to download and where to store
         intent.putExtra("Periodo", iPeriodo);
@@ -134,30 +136,39 @@ public class Datos extends AppCompatActivity {
                 int iDevice = bundle.getInt("Device");
                 String sCadena = bundle.getString("Cadena");
                 switch (iSensor) {
+                    //case IntentServiceDatos.GIROSCOPO:
                     case ServiceDatos.GIROSCOPO:
                         listaDatos.setMovimiento1(iDevice, sCadena);
                         break;
+                    //case IntentServiceDatos.ACELEROMETRO:
                     case ServiceDatos.ACELEROMETRO:
                         listaDatos.setMovimiento2(iDevice, sCadena);
                         break;
+                    //case IntentServiceDatos.MAGNETOMETRO:
                     case ServiceDatos.MAGNETOMETRO:
                         listaDatos.setMovimiento3(iDevice, sCadena);
                         break;
+                    //case IntentServiceDatos.HUMEDAD:
                     case ServiceDatos.HUMEDAD:
                         listaDatos.setHumedad(iDevice, sCadena);
                         break;
+                    //case IntentServiceDatos.LUZ:
                     case ServiceDatos.LUZ:
                         listaDatos.setLuz(iDevice, sCadena);
                         break;
+                    //case IntentServiceDatos.BAROMETRO:
                     case ServiceDatos.BAROMETRO:
                         listaDatos.setBarometro(iDevice, sCadena);
                         break;
+                    //case IntentServiceDatos.TEMPERATURA:
                     case ServiceDatos.TEMPERATURA:
                         listaDatos.setTemperatura(iDevice, sCadena);
                         break;
+                    //case IntentServiceDatos.LOCALIZACION_LAT:
                     case ServiceDatos.LOCALIZACION_LAT:
                         txtLatitud.setText("Lat: " + sCadena);
                         break;
+                    //case IntentServiceDatos.LOCALIZACION_LONG:
                     case ServiceDatos.LOCALIZACION_LONG:
                         txtLongitud.setText("Long: " + sCadena);
                         break;
@@ -169,7 +180,7 @@ public class Datos extends AppCompatActivity {
 
 
     public  void btnPararClick(View v) {
-        stopService(new Intent(this, ServiceDatos.class));
+        stopService(new Intent(this, IntentServiceDatos.class));
         finish();
     }
 }
