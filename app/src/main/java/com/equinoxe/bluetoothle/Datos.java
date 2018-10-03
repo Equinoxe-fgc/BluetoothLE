@@ -32,6 +32,25 @@ public class Datos extends AppCompatActivity {
     boolean bSensing;
     DecimalFormat df;
 
+    boolean bHumedad;
+    boolean bBarometro;
+    boolean bLuz;
+    boolean bTemperatura;
+    boolean bAcelerometro;
+    boolean bGiroscopo;
+    boolean bMagnetometro;
+
+    boolean bLocation;
+    boolean bSendServer;
+
+    int iNumDevices;
+    int iPeriodo;
+
+    String sAddresses[];
+
+    boolean bServicioParado;
+    Intent intentChkServicio = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -46,23 +65,23 @@ public class Datos extends AppCompatActivity {
         df = new DecimalFormat("###.##");
 
         Bundle extras = getIntent().getExtras();
-        int iNumDevices = extras.getInt("NumDevices");
+        iNumDevices = extras.getInt("NumDevices");
 
-        String sAddresses[] = new String[8];
+        sAddresses = new String[8];
         for (int i = 0; i < iNumDevices; i++)
             sAddresses[i] = extras.getString("Address" + i);
-        int iPeriodo = extras.getInt("Periodo");
+        iPeriodo = extras.getInt("Periodo");
 
-        boolean bHumedad = extras.getBoolean("Humedad");
-        boolean bBarometro = extras.getBoolean("Barometro");
-        boolean bLuz = extras.getBoolean("Luz");
-        boolean bTemperatura = extras.getBoolean("Temperatura");
-        boolean bAcelerometro = extras.getBoolean("Acelerometro");
-        boolean bGiroscopo = extras.getBoolean("Giroscopo");
-        boolean bMagnetometro = extras.getBoolean("Magnetometro");
+        bHumedad = extras.getBoolean("Humedad");
+        bBarometro = extras.getBoolean("Barometro");
+        bLuz = extras.getBoolean("Luz");
+        bTemperatura = extras.getBoolean("Temperatura");
+        bAcelerometro = extras.getBoolean("Acelerometro");
+        bGiroscopo = extras.getBoolean("Giroscopo");
+        bMagnetometro = extras.getBoolean("Magnetometro");
 
-        boolean bLocation = extras.getBoolean("Location");
-        boolean bSendServer = extras.getBoolean("SendServer");
+        bLocation = extras.getBoolean("Location");
+        bSendServer = extras.getBoolean("SendServer");
 
         recyclerViewDatos = findViewById(R.id.recycler_viewDatos);
         txtLatitud = findViewById(R.id.textViewLatitud);
@@ -86,31 +105,24 @@ public class Datos extends AppCompatActivity {
 
         bSensing = false;
 
-        //registerReceiver(receiver, new IntentFilter(IntentServiceDatos.NOTIFICATION));
+        bServicioParado = true;
+
+        crearServicio();
+
         registerReceiver(receiver, new IntentFilter(ServiceDatos.NOTIFICATION));
 
-        //Intent intent = new Intent(this, IntentServiceDatos.class);
-        Intent intent = new Intent(this, ServiceDatos.class);
-        // add infos for the service which file to download and where to store
-        intent.putExtra("Periodo", iPeriodo);
-        intent.putExtra("Refresco", lTiempoRefrescoDatos);
-        intent.putExtra("NumDevices", iNumDevices);
-        for (int i = 0; i < iNumDevices; i++)
-            intent.putExtra("Address" + i, sAddresses[i]);
-        intent.putExtra("Humedad", bHumedad);
-        intent.putExtra("Barometro", bBarometro);
-        intent.putExtra("Luz", bLuz);
-        intent.putExtra("Temperatura", bTemperatura);
-        intent.putExtra("Acelerometro", bAcelerometro);
-        intent.putExtra("Giroscopo", bGiroscopo);
-        intent.putExtra("Magnetometro", bMagnetometro);
-        intent.putExtra("Location", bLocation);
-        intent.putExtra("SendServer", bSendServer);
+        /*TimerTask timerTask = new TimerTask() {
+            public void run() {
+                if (bServicioParado) {
+                    //registerReceiver(receiver, new IntentFilter(IntentServiceDatos.NOTIFICATION));
+                    registerReceiver(receiver, new IntentFilter(ServiceDatos.NOTIFICATION));
+                    crearServicio();
+                }
+            }
+        };
 
-        /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-            startForegroundService(intent);
-        else*/
-            startService(intent);
+        Timer timer = new Timer();
+        timer.scheduleAtFixedRate(timerTask, 0, lTiempoRefrescoDatos);*/
 
 
         handler = new Handler();
@@ -126,15 +138,44 @@ public class Datos extends AppCompatActivity {
     }
 
 
+    private void crearServicio() {
+        intentChkServicio = new Intent(this, checkServiceDatos.class);
+
+        intentChkServicio.putExtra("Periodo", iPeriodo);
+        intentChkServicio.putExtra("Refresco", lTiempoRefrescoDatos);
+        intentChkServicio.putExtra("NumDevices", iNumDevices);
+        for (int i = 0; i < iNumDevices; i++)
+            intentChkServicio.putExtra("Address" + i, sAddresses[i]);
+        intentChkServicio.putExtra("Humedad", bHumedad);
+        intentChkServicio.putExtra("Barometro", bBarometro);
+        intentChkServicio.putExtra("Luz", bLuz);
+        intentChkServicio.putExtra("Temperatura", bTemperatura);
+        intentChkServicio.putExtra("Acelerometro", bAcelerometro);
+        intentChkServicio.putExtra("Giroscopo", bGiroscopo);
+        intentChkServicio.putExtra("Magnetometro", bMagnetometro);
+        intentChkServicio.putExtra("Location", bLocation);
+        intentChkServicio.putExtra("SendServer", bSendServer);
+
+        startService(intentChkServicio);
+    }
+
+
     private BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             bSensing = true;
             Bundle bundle = intent.getExtras();
+
             if (bundle != null) {
                 int iSensor = bundle.getInt("Sensor");
                 int iDevice = bundle.getInt("Device");
                 String sCadena = bundle.getString("Cadena");
+
+                /*if (!bServicioParado && iSensor == 0 && iDevice == 0 && sCadena.length() == 0) {
+                    bServicioParado = true;
+                    unregisterReceiver(this);
+                }*/
+                if (iDevice != ServiceDatos.ERROR)
                 switch (iSensor) {
                     //case IntentServiceDatos.GIROSCOPO:
                     case ServiceDatos.GIROSCOPO:
@@ -180,7 +221,7 @@ public class Datos extends AppCompatActivity {
 
 
     public  void btnPararClick(View v) {
-        stopService(new Intent(this, IntentServiceDatos.class));
+        stopService(intentChkServicio);
         finish();
     }
 }

@@ -43,6 +43,8 @@ import static android.bluetooth.BluetoothGattCharacteristic.FORMAT_SINT8;
 public class ServiceDatos extends Service {
     final static long lTiempoGPS = 10 * 1000;                   // Tiempo de toma de muestras de GPS (en ms)
     final static long lTiempoGrabacionDatos = 120 * 1000;       // Tiempo de grabación de las estadísticas (en ms)
+    final static long lTiempoComprobacionDesconexion = 5 * 1000;  // Tiempo cada cuanto se comprueba si ha habido desconexión
+
     final static int SENSOR_MOV_DATA_LEN = 19;
     final static int SENSOR_MOV_SEC_POS = SENSOR_MOV_DATA_LEN - 1;
 
@@ -55,6 +57,7 @@ public class ServiceDatos extends Service {
     final static int TEMPERATURA  = 6;
     final static int LOCALIZACION_LAT  = 7;
     final static int LOCALIZACION_LONG = 8;
+    public final static int ERROR = 20;
 
     public static final String NOTIFICATION = "com.equinoxe.bluetoothle.android.service.receiver";
 
@@ -110,6 +113,7 @@ public class ServiceDatos extends Service {
     long lDatosPerdidos[];
     byte iSecuencia[];
     boolean bPrimerDato[];
+    long lDatosRecibidosAnteriores[];
 
     byte movimiento[][];
     boolean bSensing;
@@ -121,6 +125,11 @@ public class ServiceDatos extends Service {
 
     private Looper mServiceLooper;
     private ServiceHandler mServiceHandler;
+
+    Timer timerComprobarDesconexion;
+    Timer timerGrabarDatos;
+
+    boolean bReinicio = false;
 
     // Handler that receives messages from the thread
     private final class ServiceHandler extends Handler {
@@ -145,11 +154,7 @@ public class ServiceDatos extends Service {
 
     @Override
     public void onCreate() {
-        // Start up the thread running the service.  Note that we create a
-        // separate thread because the service normally runs in the process's
-        // main thread, which we don't want to block.  We also make it
-        // background priority so CPU-intensive work will not disrupt our UI.
-        HandlerThread thread = new HandlerThread("ServiceStartArguments", HandlerThread.MIN_PRIORITY);
+        HandlerThread thread = new HandlerThread("ServiceDatos", HandlerThread.MIN_PRIORITY);
         thread.start();
 
         // Get the HandlerThread's Looper and use it for our Handler
@@ -161,6 +166,12 @@ public class ServiceDatos extends Service {
     public IBinder onBind(Intent intent) {
         // We don't provide binding, so return null
         return null;
+    }
+
+    @Override
+    public void onDestroy() {
+        cerrarConexiones();
+        super.onDestroy();
     }
 
     @Override
@@ -192,6 +203,7 @@ public class ServiceDatos extends Service {
         lDatosPerdidos = new long[iNumDevices];
         iSecuencia = new byte[iNumDevices];
         bPrimerDato = new boolean[iNumDevices];
+        lDatosRecibidosAnteriores = new long[iNumDevices];
 
         for (int i = 0; i < iNumDevices; i++) {
             bSensores[i][0] = bActivacion[i][0] = bConfigPeriodo[i][0] = bAcelerometro || bGiroscopo || bMagnetometro;
@@ -200,6 +212,7 @@ public class ServiceDatos extends Service {
             bSensores[i][3] = bActivacion[i][3] = bConfigPeriodo[i][3] = bLuz;
 
             lDatosRecibidos[i] = 0;
+            lDatosRecibidosAnteriores[i] = 0;
             lDatosPerdidos[i] = 0;
             iSecuencia[i] = 0;
             bPrimerDato[i] = true;
@@ -237,14 +250,28 @@ public class ServiceDatos extends Service {
 
         batInfo = new BatteryInfoBT();
 
-        TimerTask timerTask = new TimerTask() {
+        final TimerTask timerTaskGrabarDatos = new TimerTask() {
             public void run() {
                 grabarMedidas();
             }
         };
 
-        Timer timer = new Timer();
-        timer.scheduleAtFixedRate(timerTask, lTiempoGrabacionDatos, lTiempoGrabacionDatos);
+        timerGrabarDatos = new Timer();
+        timerGrabarDatos.scheduleAtFixedRate(timerTaskGrabarDatos, 0, lTiempoGrabacionDatos);
+
+        final TimerTask timerTaskComprobarDesconexion = new TimerTask() {
+            public void run() {
+                for (int i = 0; i < iNumDevices && !bReinicio; i++)
+                    if (lDatosRecibidos[i] == lDatosRecibidosAnteriores[i] && lDatosRecibidos[i] != 0) {
+                        bReinicio = true;
+                        publishSensorValues(0, ERROR, "");
+                    } else
+                        lDatosRecibidosAnteriores[i] = lDatosRecibidos[i];
+            }
+        };
+
+        timerComprobarDesconexion = new Timer();
+        timerComprobarDesconexion.scheduleAtFixedRate(timerTaskComprobarDesconexion, lTiempoComprobacionDesconexion, lTiempoComprobacionDesconexion);
 
         realizarConexiones();
 
@@ -409,7 +436,9 @@ public class ServiceDatos extends Service {
             //fLog.close();
             fOut.close();
             envioAsync.finishSend();
-        } catch (Exception e) { }
+        } catch (Exception e) {
+            Log.e("Error - ", "Error cerrando fichero");
+        }
     }
 
     private int findGattIndex(BluetoothGatt btGatt) {
@@ -839,7 +868,7 @@ public class ServiceDatos extends Service {
 
     }
 
-    private void procesaHumedad(byte humedad[], int iDevice) {
+    /*private void procesaHumedad(byte humedad[], int iDevice) {
         long aux;
 
         valorHumedad = humedad[3];
@@ -918,14 +947,8 @@ public class ServiceDatos extends Service {
         sCadena = df.format(fValorTemperatura) + " " + getString(R.string.TemperatureUnit);
         //listaDatos.setTemperatura(iDevice, sCadena);
         publishSensorValues(TEMPERATURA, iDevice,sCadena);
-    }
+    }*/
 
-
-    @Override
-    public void onDestroy() {
-        cerrarConexiones();
-        super.onDestroy();
-    }
 
     private void publishSensorValues(int iSensor, int iDevice, String sCadena) {
         Intent intent = new Intent(NOTIFICATION);
