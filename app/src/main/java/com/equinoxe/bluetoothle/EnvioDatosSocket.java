@@ -39,7 +39,7 @@ public class EnvioDatosSocket extends Thread {
         }
     }
 
-    public void finishSend() {
+    private void finishSend() {
         try {
             outputStream.close();
             socket.close();
@@ -54,11 +54,11 @@ public class EnvioDatosSocket extends Thread {
     @Override
     public void run() {
         try {
-            socket = new Socket(sServer, iPuerto);
-            outputStream = socket.getOutputStream();
-
             sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
             String currentDateandTime = sdf.format(new Date()) + "\n";
+
+            socket = new Socket(sServer, iPuerto);
+            outputStream = socket.getOutputStream();
 
             fOut = new FileOutputStream(Environment.getExternalStorageDirectory() + "/LOG_Envio.txt", true);
             fOut.write(currentDateandTime.getBytes());
@@ -89,10 +89,10 @@ public class EnvioDatosSocket extends Thread {
             }
             fOut.close();
         } catch (Exception e) {
-            sCadena = sdf.format(new Date()) + " General Exception " + e.getMessage() + "\n";
+            sCadena = sdf.format(new Date()) + " While Exception " + e.getMessage() + "\n";
             try {
                 fOut.write(sCadena.getBytes());
-            } catch (IOException d) {  }
+            } catch (Exception el) {}
             Log.d("EnvioDatosSocket.java", "Error al crear socket o stream");
         }
     }
@@ -100,8 +100,7 @@ public class EnvioDatosSocket extends Thread {
     @Override
     protected void finalize() throws Throwable {
         fOut.close();
-        if (outputStream != null) outputStream.close();
-        if (socket != null) socket.close();
+        finishSend();
         super.finalize();
     }
 }

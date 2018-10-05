@@ -351,8 +351,12 @@ public class IntentServiceDatos extends IntentService {
         try {
             //fLog.close();
             fOut.close();
-            envioAsync.finishSend();
+            //envioAsync.finishSend();
+            envioAsync.finalize();
         } catch (Exception e) { }
+        catch (Throwable throwable) {
+            throwable.printStackTrace();
+        }
     }
 
     private int findGattIndex(BluetoothGatt btGatt) {

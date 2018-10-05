@@ -129,7 +129,9 @@ public class ServiceDatos extends Service {
     Timer timerComprobarDesconexion;
     Timer timerGrabarDatos;
 
-    boolean bReinicio = false;
+    boolean bReiniciar = false;
+    boolean bReinicio;
+
 
     // Handler that receives messages from the thread
     private final class ServiceHandler extends Handler {
@@ -195,6 +197,8 @@ public class ServiceDatos extends Service {
         bLocation = intent.getBooleanExtra("Location", false);
         bSendServer = intent.getBooleanExtra("SendServer", false);
 
+        bReinicio = intent.getBooleanExtra("Reinicio", false);
+
         bSensores = new boolean[iNumDevices][4];
         bActivacion = new boolean[iNumDevices][4];
         bConfigPeriodo = new boolean[iNumDevices][4];
@@ -240,10 +244,16 @@ public class ServiceDatos extends Service {
                 iNumFichero++;
             } while (file.exists());
 
-            fOut = new FileOutputStream(sFichero, false);
-            String sCadena = android.os.Build.MODEL + " " + iNumDevices + " " + iPeriodo + " " + bGPSEnabled + " " + bSendServer + " " + currentDateandTime + "\n";
-            fOut.write(sCadena.getBytes());
-            fOut.flush();
+            if (bReinicio) {
+                iNumFichero -= 2;
+                sFichero = Environment.getExternalStorageDirectory() + "/" + android.os.Build.MODEL + "_" + iNumDevices + "_" + iPeriodo + "_" + iNumFichero + ".txt";
+                fOut = new FileOutputStream(sFichero, true);
+            } else {
+                fOut = new FileOutputStream(sFichero, false);
+                String sCadena = android.os.Build.MODEL + " " + iNumDevices + " " + iPeriodo + " " + bGPSEnabled + " " + bSendServer + " " + currentDateandTime + "\n";
+                fOut.write(sCadena.getBytes());
+                fOut.flush();
+            }
         } catch (Exception e) {
             Toast.makeText(this, getResources().getString(R.string.ERROR_FICHERO), Toast.LENGTH_LONG).show();
         }
@@ -261,9 +271,9 @@ public class ServiceDatos extends Service {
 
         final TimerTask timerTaskComprobarDesconexion = new TimerTask() {
             public void run() {
-                for (int i = 0; i < iNumDevices && !bReinicio; i++)
+                for (int i = 0; i < iNumDevices && !bReiniciar; i++)
                     if (lDatosRecibidos[i] == lDatosRecibidosAnteriores[i] && lDatosRecibidos[i] != 0) {
-                        bReinicio = true;
+                        bReiniciar = true;
                         publishSensorValues(0, ERROR, "");
                     } else
                         lDatosRecibidosAnteriores[i] = lDatosRecibidos[i];
@@ -420,6 +430,10 @@ public class ServiceDatos extends Service {
 
     private void cerrarConexiones() {
         bSensing = false;
+
+        timerGrabarDatos.cancel();
+        timerComprobarDesconexion.cancel();
+
         grabarMedidas();
 
         //envioAsync.cancel(true);
@@ -435,9 +449,11 @@ public class ServiceDatos extends Service {
         try {
             //fLog.close();
             fOut.close();
-            envioAsync.finishSend();
+            envioAsync.finalize();
         } catch (Exception e) {
             Log.e("Error - ", "Error cerrando fichero");
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
         }
     }
 
@@ -949,7 +965,7 @@ public class ServiceDatos extends Service {
         publishSensorValues(TEMPERATURA, iDevice,sCadena);
     }*/
 
-
+// TODO: Hacer que se envíe el número de mensajes y errorres por sensor para poder recuperarse de una caida
     private void publishSensorValues(int iSensor, int iDevice, String sCadena) {
         Intent intent = new Intent(NOTIFICATION);
         intent.putExtra("Sensor", iSensor);

@@ -222,6 +222,7 @@ public class Datos extends AppCompatActivity {
 
     public  void btnPararClick(View v) {
         stopService(intentChkServicio);
+        unregisterReceiver(receiver);
         finish();
     }
 }

@@ -82,6 +82,8 @@ public class checkServiceDatos extends Service {
         intentServicio.putExtra("Location", bLocation);
         intentServicio.putExtra("SendServer", bSendServer);
 
+        intentServicio.putExtra("Reinicio", false);
+
         startService(intentServicio);
     }
 
@@ -134,6 +136,7 @@ public class checkServiceDatos extends Service {
 
                 if (iDevice == ServiceDatos.ERROR) {
                     stopService(intentServicio);
+                    intentServicio.putExtra("Reinicio", true);
                     startService(intentServicio);
                 }
 
@@ -144,6 +147,7 @@ public class checkServiceDatos extends Service {
     @Override
     public void onDestroy() {
         stopService(intentServicio);
+        unregisterReceiver(receiver);
         super.onDestroy();
     }
 
