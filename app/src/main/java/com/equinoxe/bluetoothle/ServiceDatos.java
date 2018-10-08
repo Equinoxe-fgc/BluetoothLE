@@ -29,8 +29,11 @@ import android.os.Message;
 import android.util.Log;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStreamReader;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -44,6 +47,8 @@ public class ServiceDatos extends Service {
     final static long lTiempoGPS = 10 * 1000;                   // Tiempo de toma de muestras de GPS (en ms)
     final static long lTiempoGrabacionDatos = 120 * 1000;       // Tiempo de grabación de las estadísticas (en ms)
     final static long lTiempoComprobacionDesconexion = 5 * 1000;  // Tiempo cada cuanto se comprueba si ha habido desconexión
+
+    final static int MAX_SENSOR_NUMBER = 8;
 
     final static int SENSOR_MOV_DATA_LEN = 19;
     final static int SENSOR_MOV_SEC_POS = SENSOR_MOV_DATA_LEN - 1;
@@ -120,7 +125,7 @@ public class ServiceDatos extends Service {
     DecimalFormat df;
 
     private boolean bHumedad, bBarometro, bLuz, bTemperatura, bAcelerometro, bGiroscopo, bMagnetometro;
-    private String sAddresses[] = new String[8];
+    private String sAddresses[] = new String[MAX_SENSOR_NUMBER];
     boolean bSendServer;
 
     private Looper mServiceLooper;
@@ -203,23 +208,27 @@ public class ServiceDatos extends Service {
         bActivacion = new boolean[iNumDevices][4];
         bConfigPeriodo = new boolean[iNumDevices][4];
 
-        lDatosRecibidos = new long[iNumDevices];
-        lDatosPerdidos = new long[iNumDevices];
+        // Se inicializan todos los sensores porque se guarda la estadística de todos aunque no se usen
+        lDatosRecibidos = new long[MAX_SENSOR_NUMBER];
+        lDatosPerdidos = new long[MAX_SENSOR_NUMBER];
         iSecuencia = new byte[iNumDevices];
         bPrimerDato = new boolean[iNumDevices];
         lDatosRecibidosAnteriores = new long[iNumDevices];
 
-        for (int i = 0; i < iNumDevices; i++) {
-            bSensores[i][0] = bActivacion[i][0] = bConfigPeriodo[i][0] = bAcelerometro || bGiroscopo || bMagnetometro;
-            bSensores[i][1] = bActivacion[i][1] = bConfigPeriodo[i][1] = bHumedad;
-            bSensores[i][2] = bActivacion[i][2] = bConfigPeriodo[i][2] = bBarometro || bTemperatura;
-            bSensores[i][3] = bActivacion[i][3] = bConfigPeriodo[i][3] = bLuz;
+        for (int i = 0; i < MAX_SENSOR_NUMBER; i++) {
+            if (i < iNumDevices) {
+                bSensores[i][0] = bActivacion[i][0] = bConfigPeriodo[i][0] = bAcelerometro || bGiroscopo || bMagnetometro;
+                bSensores[i][1] = bActivacion[i][1] = bConfigPeriodo[i][1] = bHumedad;
+                bSensores[i][2] = bActivacion[i][2] = bConfigPeriodo[i][2] = bBarometro || bTemperatura;
+                bSensores[i][3] = bActivacion[i][3] = bConfigPeriodo[i][3] = bLuz;
+
+                lDatosRecibidosAnteriores[i] = 0;
+                iSecuencia[i] = 0;
+                bPrimerDato[i] = true;
+            }
 
             lDatosRecibidos[i] = 0;
-            lDatosRecibidosAnteriores[i] = 0;
             lDatosPerdidos[i] = 0;
-            iSecuencia[i] = 0;
-            bPrimerDato[i] = true;
         }
 
         movimiento = new byte[iNumDevices][SENSOR_MOV_DATA_LEN];
@@ -247,6 +256,32 @@ public class ServiceDatos extends Service {
             if (bReinicio) {
                 iNumFichero -= 2;
                 sFichero = Environment.getExternalStorageDirectory() + "/" + android.os.Build.MODEL + "_" + iNumDevices + "_" + iPeriodo + "_" + iNumFichero + ".txt";
+                FileInputStream fIn = new FileInputStream(sFichero);
+                InputStreamReader sReader = new InputStreamReader(fIn);
+                BufferedReader buffreader = new BufferedReader(sReader);
+
+                String sLinea, sUltimaLinea = null;
+                do {
+                    sLinea = buffreader.readLine();
+                    if (sLinea != null)
+                        sUltimaLinea = sLinea;
+                } while (sLinea != null);
+                buffreader.close();
+                sReader.close();
+                fIn.close();
+
+                int iPosInicio = sUltimaLinea.indexOf('(');
+                sLinea = sUltimaLinea.substring(iPosInicio + 1);
+                for (int i = 0; i < MAX_SENSOR_NUMBER; i++) {
+                    int iPosComa = sLinea.indexOf(',');
+                    int iPosFin = sLinea.indexOf(')');
+                    String sCadena1 = sLinea.substring(0, iPosComa);
+                    String sCadena2 = sLinea.substring(iPosComa + 1, iPosFin);
+                    lDatosRecibidos[i] = Long.parseLong(sCadena1);
+                    lDatosPerdidos[i] = Long.parseLong(sCadena2);
+                    iPosInicio = iPosFin + 1;
+                    sLinea = sLinea.substring(iPosInicio + 1);
+                }
                 fOut = new FileOutputStream(sFichero, true);
             } else {
                 fOut = new FileOutputStream(sFichero, false);
@@ -405,22 +440,24 @@ public class ServiceDatos extends Service {
     public void grabarMedidas() {
         getBatteryInfo();
 
-        long lDatosRecibidosTotal = 0;
-        long lDatosPerdidosTotal = 0;
-        for (int i = 0; i < iNumDevices; i++) {
-            lDatosRecibidosTotal += lDatosRecibidos[i];
-            lDatosPerdidosTotal += lDatosPerdidos[i];
-        }
-
         try {
             String sCadena = sdf.format(new Date()) + ":" +
                     batInfo.getBatteryLevel() + ":" +
                     batInfo.getVoltaje() + ":" +
                     batInfo.getTemperature() + ":" +
                     batInfo.getCurrentAverage() + ":" +
-                    batInfo.getCurrentNow() + " - " +
-                    lDatosRecibidosTotal + " - " +
-                    lDatosPerdidosTotal + "\n";
+                    batInfo.getCurrentNow() + " - ";
+            fOut.write(sCadena.getBytes());
+
+            long lDatosRecibidosTotal = 0;
+            long lDatosPerdidosTotal = 0;
+            sCadena = "";
+            for (int i = 0; i < MAX_SENSOR_NUMBER; i++) {
+                lDatosRecibidosTotal += lDatosRecibidos[i];
+                lDatosPerdidosTotal += lDatosPerdidos[i];
+                sCadena += "(" +  lDatosRecibidos[i] + "," + lDatosPerdidos[i] + ")";
+            }
+            sCadena += "(" +  lDatosRecibidosTotal + "," + lDatosPerdidosTotal + ")\n";
             fOut.write(sCadena.getBytes());
             fOut.flush();
         } catch (Exception e) {
