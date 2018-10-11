@@ -69,7 +69,6 @@ public class EnvioDatosSocket extends Thread {
                         try {
                             outputStream.write(data);
                             bDataToSend = false;
-                            //outputStream.flush();
                         } catch (Exception e) {
                             sCadena = sdf.format(new Date()) + " While Exception " + e.getMessage() + "\n";
                             fOut.write(sCadena.getBytes());
@@ -87,14 +86,18 @@ public class EnvioDatosSocket extends Thread {
                     }
                 }
             }
+            // TODO: Comprobar si para de enviar porque se cierra el socket
             fOut.close();
+            sCadena = sdf.format(new Date()) + " Socket cerrado\n";
         } catch (Exception e) {
             sCadena = sdf.format(new Date()) + " While Exception " + e.getMessage() + "\n";
-            try {
-                fOut.write(sCadena.getBytes());
-            } catch (Exception el) {}
             Log.d("EnvioDatosSocket.java", "Error al crear socket o stream");
         }
+
+        try {
+            fOut.write(sCadena.getBytes());
+            fOut.close();
+        } catch (Exception e) {}
     }
 
     @Override
