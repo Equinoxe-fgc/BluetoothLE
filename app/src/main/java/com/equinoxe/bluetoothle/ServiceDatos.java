@@ -307,7 +307,7 @@ public class ServiceDatos extends Service {
         final TimerTask timerTaskComprobarDesconexion = new TimerTask() {
             public void run() {
                 for (int i = 0; i < iNumDevices && !bReiniciar; i++)
-                    if (lDatosRecibidos[i] == lDatosRecibidosAnteriores[i] && lDatosRecibidos[i] != 0) {
+                    if (lDatosRecibidos[i] == lDatosRecibidosAnteriores[i] /*&& lDatosRecibidos[i] != 0*/) {
                         bReiniciar = true;
                         publishSensorValues(0, ERROR, "");
                     } else
@@ -316,7 +316,7 @@ public class ServiceDatos extends Service {
         };
 
         timerComprobarDesconexion = new Timer();
-        timerComprobarDesconexion.scheduleAtFixedRate(timerTaskComprobarDesconexion, lTiempoComprobacionDesconexion, lTiempoComprobacionDesconexion);
+        timerComprobarDesconexion.scheduleAtFixedRate(timerTaskComprobarDesconexion, lTiempoComprobacionDesconexion + 30000, lTiempoComprobacionDesconexion);
 
         realizarConexiones();
 
@@ -1002,7 +1002,7 @@ public class ServiceDatos extends Service {
         publishSensorValues(TEMPERATURA, iDevice,sCadena);
     }*/
 
-// TODO: Hacer que se envíe el número de mensajes y errorres por sensor para poder recuperarse de una caida
+
     private void publishSensorValues(int iSensor, int iDevice, String sCadena) {
         Intent intent = new Intent(NOTIFICATION);
         intent.putExtra("Sensor", iSensor);
