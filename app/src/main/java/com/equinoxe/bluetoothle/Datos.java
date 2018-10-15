@@ -111,19 +111,6 @@ public class Datos extends AppCompatActivity {
 
         registerReceiver(receiver, new IntentFilter(ServiceDatos.NOTIFICATION));
 
-        /*TimerTask timerTask = new TimerTask() {
-            public void run() {
-                if (bServicioParado) {
-                    //registerReceiver(receiver, new IntentFilter(IntentServiceDatos.NOTIFICATION));
-                    registerReceiver(receiver, new IntentFilter(ServiceDatos.NOTIFICATION));
-                    crearServicio();
-                }
-            }
-        };
-
-        Timer timer = new Timer();
-        timer.scheduleAtFixedRate(timerTask, 0, lTiempoRefrescoDatos);*/
-
 
         handler = new Handler();
         runOnUiThread(new Runnable(){

@@ -83,69 +83,13 @@ public class Conexion extends AppCompatActivity {
         btGatt = device.connectGatt(this, false, mBluetoothGattCallback);
 
         handler.removeCallbacks(sendUpdatesToUI);
-
-        //bFicheroLotes = procesaFicheroLotes();
-
-        /*if (bFicheroLotes)
-            btnStartBatch.setVisibility(Button.VISIBLE);*/
     }
-
-    /*private boolean procesaFicheroLotes() {
-        boolean bFicheroLotes = true;
-
-        File sdcard = Environment.getExternalStorageDirectory();
-        File file = new File(sdcard,"simulBT.bat");
-
-        verifyStoragePermissions(this);
-
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(file));
-            String line;
-
-            line = br.readLine();
-            iNumSimulacionesLotes = Integer.parseInt(line);
-            iSimulationTime = new int[iNumSimulacionesLotes];
-            bSimulationParameters = new boolean[iNumSimulacionesLotes][7];
-
-            for (int i = 0; i < iNumSimulacionesLotes; i++) {
-                line = br.readLine();
-                int iPosSeparador = line.indexOf(" ");
-                iSimulationTime[i] = Integer.parseInt(line.substring(0, iPosSeparador));
-
-                for (int iSensor = 0; iSensor < 7; iSensor++) {
-                    bSimulationParameters[i][iSensor] = line.charAt(iPosSeparador + iSensor + 1) != '0';
-                }
-            }
-            br.close();
-        }
-        catch (IOException e) {
-            bFicheroLotes = false;
-        }
-
-        return bFicheroLotes;
-    }
-
-    public static void verifyStoragePermissions(Activity activity) {
-        // Check if we have write permission
-        String[] PERMISSIONS_STORAGE = {
-                Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-        };
-
-        if (Build.VERSION.SDK_INT >= 23) {
-            int permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
-            if (permission != PackageManager.PERMISSION_GRANTED) {
-                // We don't have permission so prompt the user
-                ActivityCompat.requestPermissions(activity, PERMISSIONS_STORAGE, 1);
-            }
-        }
-    }*/
 
 
     @Override
     public void onBackPressed() {
-        btGatt.disconnect();
-        btGatt.close();
+        //btGatt.disconnect();
+        //btGatt.close();
 
         super.onBackPressed();
     }
@@ -181,11 +125,15 @@ public class Conexion extends AppCompatActivity {
                     }
                 }
             }
+
             if (listServices.size() == 0)
                 handler.postDelayed(this, 1000); // 1 seconds
             else {
+                // Se desconecta una vez encontrados los servicios
                 recyclerViewSensores.setAdapter(adaptadorSensores);
                 recyclerViewSensores.setLayoutManager(layoutManager);
+                btGatt.disconnect();
+                btGatt.close();
             }
         }
     };
@@ -225,8 +173,8 @@ public class Conexion extends AppCompatActivity {
     };
 
     public void onStartSingle(View v) {
-        btGatt.disconnect();
-        btGatt.close();
+        //btGatt.disconnect();
+        //btGatt.close();
 
         Intent intent = new Intent(this, Datos.class);
         intent.putExtra("NumDevices", iNumDevices);

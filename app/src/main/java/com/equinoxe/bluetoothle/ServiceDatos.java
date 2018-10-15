@@ -33,6 +33,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -47,6 +48,8 @@ public class ServiceDatos extends Service {
     final static long lTiempoGPS = 10 * 1000;                   // Tiempo de toma de muestras de GPS (en ms)
     final static long lTiempoGrabacionDatos = 120 * 1000;       // Tiempo de grabación de las estadísticas (en ms)
     final static long lTiempoComprobacionDesconexion = 5 * 1000;  // Tiempo cada cuanto se comprueba si ha habido desconexión
+
+    final static long lDelayComprobacionDesconexion = 15000;
 
     final static int MAX_SENSOR_NUMBER = 8;
 
@@ -76,6 +79,7 @@ public class ServiceDatos extends Service {
     SimpleDateFormat sdf;
 
     FileOutputStream fOut;
+    FileOutputStream fLog;
     BatteryInfoBT batInfo;
 
     private int iNumDevices;
@@ -289,6 +293,8 @@ public class ServiceDatos extends Service {
                 fOut.write(sCadena.getBytes());
                 fOut.flush();
             }
+
+            fLog = new FileOutputStream(Environment.getExternalStorageDirectory() + "/ServiceLog.txt", true);
         } catch (Exception e) {
             Toast.makeText(this, getResources().getString(R.string.ERROR_FICHERO), Toast.LENGTH_LONG).show();
         }
@@ -302,13 +308,17 @@ public class ServiceDatos extends Service {
         };
 
         timerGrabarDatos = new Timer();
-        timerGrabarDatos.scheduleAtFixedRate(timerTaskGrabarDatos, 0, lTiempoGrabacionDatos);
+        timerGrabarDatos.scheduleAtFixedRate(timerTaskGrabarDatos, lTiempoGrabacionDatos, lTiempoGrabacionDatos);
 
         final TimerTask timerTaskComprobarDesconexion = new TimerTask() {
             public void run() {
                 for (int i = 0; i < iNumDevices && !bReiniciar; i++)
                     if (lDatosRecibidos[i] == lDatosRecibidosAnteriores[i] /*&& lDatosRecibidos[i] != 0*/) {
                         bReiniciar = true;
+                        String sCadena = sdf.format(new Date()) + " ERROR: No recibidos datos de " + sAddresses[i] + "\n";
+                        try {
+                            fLog.write(sCadena.getBytes());
+                        } catch (IOException e) {}
                         publishSensorValues(0, ERROR, "");
                     } else
                         lDatosRecibidosAnteriores[i] = lDatosRecibidos[i];
@@ -316,7 +326,7 @@ public class ServiceDatos extends Service {
         };
 
         timerComprobarDesconexion = new Timer();
-        timerComprobarDesconexion.scheduleAtFixedRate(timerTaskComprobarDesconexion, lTiempoComprobacionDesconexion + 30000, lTiempoComprobacionDesconexion);
+        timerComprobarDesconexion.scheduleAtFixedRate(timerTaskComprobarDesconexion, lDelayComprobacionDesconexion, lTiempoComprobacionDesconexion);
 
         realizarConexiones();
 
@@ -334,6 +344,12 @@ public class ServiceDatos extends Service {
         BluetoothDevice device;
         for (int i = 0; i < iNumDevices; i++) {
             device = adapter.getRemoteDevice(sAddresses[i]);
+
+            String sCadena = sdf.format(new Date()) + " Solicitud de conexión con " + sAddresses[i] + "\n";
+            try {
+                fLog.write(sCadena.getBytes());
+            } catch (IOException e) {}
+
             btGatt[i] = device.connectGatt(this, true, mBluetoothGattCallback);
         }
 
@@ -353,6 +369,11 @@ public class ServiceDatos extends Service {
                 SharedPreferences pref = getApplicationContext().getSharedPreferences("Settings", MODE_PRIVATE);
                 String sServer = pref.getString("server", "127.0.0.1");
                 int iPuerto = pref.getInt("puerto", 8000);
+
+                String sCadena = sdf.format(new Date()) + " Creación de servicio de envío a servidor " + sServer + ":" + iPuerto + "\n";
+                try {
+                    fLog.write(sCadena.getBytes());
+                } catch (IOException e) {}
 
                 envioAsync = new EnvioDatosSocket(sServer, iPuerto, SENSOR_MOV_DATA_LEN + 1);
                 envioAsync.start();
@@ -468,6 +489,11 @@ public class ServiceDatos extends Service {
     private void cerrarConexiones() {
         bSensing = false;
 
+        String sCadena = sdf.format(new Date()) + " Cerrando conexiones\n";
+        try {
+            fLog.write(sCadena.getBytes());
+        } catch (IOException e) {}
+
         timerGrabarDatos.cancel();
         timerComprobarDesconexion.cancel();
 
@@ -486,6 +512,7 @@ public class ServiceDatos extends Service {
         try {
             //fLog.close();
             fOut.close();
+            fLog.close();
             envioAsync.finalize();
         } catch (Exception e) {
             Log.e("Error - ", "Error cerrando fichero");
@@ -512,6 +539,11 @@ public class ServiceDatos extends Service {
                 super.onConnectionStateChange(gatt, status, newState);
                 if (status == BluetoothGatt.GATT_SUCCESS)
                     if (newState == BluetoothGatt.STATE_CONNECTED) {
+                        String sCadena = sdf.format(new Date()) + " Descubriendo servicios de " + gatt.getDevice().getAddress() + "\n";
+                        try {
+                            fLog.write(sCadena.getBytes());
+                        } catch (IOException e) {}
+
                         btGatt[findGattIndex(gatt)].discoverServices();
                     }
             }
@@ -569,6 +601,7 @@ public class ServiceDatos extends Service {
                         int firstPeriodo = firstSensorPeriodo(iDevice);
                         if (firstPeriodo < 4) {
                             bConfigPeriodo[iDevice][firstPeriodo] = false;
+
                             configPeriodo(gatt, firstPeriodo);
                         } else {
                             bSensing = true;
@@ -637,6 +670,11 @@ public class ServiceDatos extends Service {
     }
 
     private void configPeriodo(BluetoothGatt btGatt, int firstPeriodo) {
+        String sCadena = sdf.format(new Date()) + " Config periodo " + btGatt.getDevice().getAddress() + "\n";
+        try {
+            fLog.write(sCadena.getBytes());
+        } catch (IOException e) {}
+
         BluetoothGattCharacteristic characteristic;
 
         characteristic = btGatt.getService(getServerUUID(firstPeriodo)).getCharacteristic(getPeriodoUUID(firstPeriodo));
@@ -645,6 +683,11 @@ public class ServiceDatos extends Service {
     }
 
     private void activarServicio(BluetoothGatt btGatt, int firstActivar) {
+        String sCadena = sdf.format(new Date()) + " Activar servicio en " + btGatt.getDevice().getAddress() + "\n";
+        try {
+            fLog.write(sCadena.getBytes());
+        } catch (IOException e) {}
+
         BluetoothGattCharacteristic characteristic;
 
         characteristic = btGatt.getService(getServerUUID(firstActivar)).getCharacteristic(getConfigUUID(firstActivar));
@@ -668,6 +711,11 @@ public class ServiceDatos extends Service {
 
 
     private void habilitarServicio(BluetoothGatt gatt, int firstSensor) {
+        String sCadena = sdf.format(new Date()) + " Habilitar servicio " + gatt.getDevice().getAddress() + "\n";
+        try {
+            fLog.write(sCadena.getBytes());
+        } catch (IOException e) {}
+
         BluetoothGattService service;
         BluetoothGattDescriptor descriptor;
         BluetoothGattCharacteristic characteristic;

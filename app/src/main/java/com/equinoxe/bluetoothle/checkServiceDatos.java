@@ -16,7 +16,11 @@ import android.support.annotation.Nullable;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import static java.lang.Thread.sleep;
+
 public class checkServiceDatos extends Service {
+    final static long lDelayReconexion = 4000;
+
     Intent intentServicio = null;
 
     boolean bHumedad;
@@ -36,24 +40,10 @@ public class checkServiceDatos extends Service {
 
     String sAddresses[] = new String[8];
 
-    //private Looper mServiceLooper;
-    //private ServiceHandler mServiceHandler;
 
     public checkServiceDatos() {
         super();
     }
-
-    /*// Handler that receives messages from the thread
-    private final class ServiceHandler extends Handler {
-        public ServiceHandler(Looper looper) {
-            super(looper);
-        }
-        @Override
-        public void handleMessage(Message msg) {
-            // Completar
-        }
-    }*/
-
 
     @Override
     public void onCreate() {
@@ -110,18 +100,6 @@ public class checkServiceDatos extends Service {
 
         registerReceiver(receiver, new IntentFilter(ServiceDatos.NOTIFICATION));
 
-        /*TimerTask timerTask = new TimerTask() {
-            public void run() {
-                if (bServicioParado) {
-                    //registerReceiver(receiver, new IntentFilter(IntentServiceDatos.NOTIFICATION));
-                    registerReceiver(receiver, new IntentFilter(ServiceDatos.NOTIFICATION));
-                    crearServicio();
-                }
-            }
-        };
-
-        Timer timer = new Timer();
-        timer.scheduleAtFixedRate(timerTask, 0, lTiempoComprobacionDesconexion);*/
 
         return START_NOT_STICKY;
     }
@@ -136,6 +114,11 @@ public class checkServiceDatos extends Service {
 
                 if (iDevice == ServiceDatos.ERROR) {
                     stopService(intentServicio);
+                    try {
+                        sleep(lDelayReconexion);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                     intentServicio.putExtra("Reinicio", true);
                     startService(intentServicio);
                 }
