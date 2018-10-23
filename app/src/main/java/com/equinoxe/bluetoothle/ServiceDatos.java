@@ -429,6 +429,9 @@ public class ServiceDatos extends Service {
     public LocationListener locListener = new LocationListener() {
         public void onLocationChanged(Location location) {
             actualizaMejorLocaliz(location);
+            if (bSendServer) {
+                envioAsync.setGPS(mejorLocaliz.getLatitude(), mejorLocaliz.getLongitude());
+            }
             publishSensorValues(LOCALIZACION_LAT, 0, Double.toString(mejorLocaliz.getLatitude()));
             publishSensorValues(LOCALIZACION_LONG, 0, Double.toString(mejorLocaliz.getLongitude()));
         }
