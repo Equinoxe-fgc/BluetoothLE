@@ -13,19 +13,19 @@ import java.util.Date;
 public class EnvioDatosSocket extends Thread {
     private final static byte ID_GPS = 127;
     private OutputStream outputStream = null;
-    FileOutputStream fOut = null;
+    private FileOutputStream fOut = null;
     private Socket socket = null;
-    SimpleDateFormat sdf;
+    private SimpleDateFormat sdf;
     private byte data[];
     private byte dataGPS[];
-    byte bytesLat[];
-    byte bytesLong[];
+    private byte bytesLat[];
+    private byte bytesLong[];
     private boolean bDataToSend = false;
     private boolean bGPSToSend = false;
     private String sServer;
     private int iPuerto;
     private int iTamano;
-    String sCadena;
+    private String sCadena;
 
 
     public EnvioDatosSocket(String sServer, int iPuerto, int iTamano) {
@@ -41,13 +41,9 @@ public class EnvioDatosSocket extends Thread {
 
     public void setData(byte iDevice, byte data[]) {
         synchronized (this) {
-            for (int i = 1; i < iTamano; i++) {
-                this.data[i] = data[i - 1];
-            }
             this.data[0] = iDevice;
+            System.arraycopy(data, 0, this.data, 1, iTamano-1);
 
-            /*this.data = Arrays.copyOf(data, iTamano);
-            this.data[iTamano - 1] = iDevice;*/
             bDataToSend = true;
         }
     }
