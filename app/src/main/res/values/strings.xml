@@ -39,5 +39,5 @@
     <string name="LOCATION_DISABLED">Location is disabled. Enable GPS and WiFi (or data)</string>
     <string name="LOCATION_FAILED">Location failed. Enable GPS and WiFi (or data)</string>
     <string name="EnvioAservidor">Send data to server</string>
-    <string name="CompileDate">Version: 15/10/2018</string>
+    <string name="CompileDate">Version: 14/11/2018</string>
 </resources>

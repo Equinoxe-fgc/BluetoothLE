@@ -109,6 +109,7 @@ public class EnvioDatosSocket extends Thread {
                             // Se vuelve a crear la conexión
                             socket = new Socket(sServer, iPuerto);
                             outputStream = socket.getOutputStream();
+                            socket.setSoTimeout(10000);
                         }
                     }
                 }

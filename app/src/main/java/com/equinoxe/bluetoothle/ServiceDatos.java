@@ -137,6 +137,7 @@ public class ServiceDatos extends Service {
 
     Timer timerComprobarDesconexion;
     Timer timerGrabarDatos;
+    Timer timerGrabarGPS;
 
     boolean bReiniciar = false;
     boolean bReinicio;
@@ -181,6 +182,11 @@ public class ServiceDatos extends Service {
 
     @Override
     public void onDestroy() {
+        timerGrabarDatos.cancel();
+        timerComprobarDesconexion.cancel();
+        if (bSendServer)
+            timerGrabarGPS.cancel();
+
         cerrarConexiones();
         super.onDestroy();
     }
@@ -289,7 +295,7 @@ public class ServiceDatos extends Service {
                 fOut = new FileOutputStream(sFichero, true);
             } else {
                 fOut = new FileOutputStream(sFichero, false);
-                String sCadena = android.os.Build.MODEL + " " + iNumDevices + " " + iPeriodo + " " + bGPSEnabled + " " + bSendServer + " " + currentDateandTime + "\n";
+                String sCadena = android.os.Build.MODEL + " " + iNumDevices + " " + iPeriodo + " " + bLocation + " " + bSendServer + " " + currentDateandTime + "\n";
                 fOut.write(sCadena.getBytes());
                 fOut.flush();
             }
@@ -327,6 +333,16 @@ public class ServiceDatos extends Service {
 
         timerComprobarDesconexion = new Timer();
         timerComprobarDesconexion.scheduleAtFixedRate(timerTaskComprobarDesconexion, lDelayComprobacionDesconexion, lTiempoComprobacionDesconexion);
+
+        final TimerTask timerTaskGrabarGPS = new TimerTask() {
+            public void run() {
+                envioAsync.setGPS(mejorLocaliz.getLatitude(), mejorLocaliz.getLongitude());
+            }
+        };
+
+        timerGrabarGPS = new Timer();
+        if (bSendServer)
+            timerGrabarGPS.scheduleAtFixedRate(timerTaskGrabarGPS, lTiempoGPS, lTiempoGPS);
 
         realizarConexiones();
 
@@ -429,9 +445,9 @@ public class ServiceDatos extends Service {
     public LocationListener locListener = new LocationListener() {
         public void onLocationChanged(Location location) {
             actualizaMejorLocaliz(location);
-            if (bSendServer) {
+            /*if (bSendServer) {
                 envioAsync.setGPS(mejorLocaliz.getLatitude(), mejorLocaliz.getLongitude());
-            }
+            }*/
             publishSensorValues(LOCALIZACION_LAT, 0, Double.toString(mejorLocaliz.getLatitude()));
             publishSensorValues(LOCALIZACION_LONG, 0, Double.toString(mejorLocaliz.getLongitude()));
         }
@@ -496,9 +512,6 @@ public class ServiceDatos extends Service {
         try {
             fLog.write(sCadena.getBytes());
         } catch (IOException e) {}
-
-        timerGrabarDatos.cancel();
-        timerComprobarDesconexion.cancel();
 
         grabarMedidas();
 
