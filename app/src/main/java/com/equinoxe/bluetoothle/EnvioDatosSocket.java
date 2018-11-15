@@ -83,7 +83,8 @@ public class EnvioDatosSocket extends Thread {
             outputStream = socket.getOutputStream();
 
             fOut = new FileOutputStream(Environment.getExternalStorageDirectory() + "/LOG_Envio.txt", true);
-            fOut.write(currentDateandTime.getBytes());
+            sCadena = sdf.format(new Date()) + " - Inicio sesión\n";
+            fOut.write(sCadena.getBytes());
 
             while (!socket.isClosed()) {
                 if (bDataToSend || bGPSToSend) {
@@ -109,7 +110,6 @@ public class EnvioDatosSocket extends Thread {
                             // Se vuelve a crear la conexión
                             socket = new Socket(sServer, iPuerto);
                             outputStream = socket.getOutputStream();
-                            socket.setSoTimeout(10000);
                         }
                     }
                 }
