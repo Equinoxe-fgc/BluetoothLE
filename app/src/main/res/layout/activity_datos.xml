@@ -27,4 +27,14 @@
         android:layout_height="wrap_content"
         android:onClick="btnPararClick"
         android:text="@string/stop" />
+
+    <EditText
+        android:id="@+id/textViewMensajes"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="top"
+        android:editable="false"
+        android:ems="10"
+        android:inputType="textMultiLine" />
+
 </LinearLayout>

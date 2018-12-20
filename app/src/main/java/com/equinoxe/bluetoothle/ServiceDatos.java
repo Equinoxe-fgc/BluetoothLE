@@ -26,6 +26,7 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.os.PowerManager;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -66,6 +67,7 @@ public class ServiceDatos extends Service {
     final static int LOCALIZACION_LAT  = 7;
     final static int LOCALIZACION_LONG = 8;
     public final static int ERROR = 20;
+    public final static int MSG = 30;
 
     public static final String NOTIFICATION = "com.equinoxe.bluetoothle.android.service.receiver";
 
@@ -142,6 +144,9 @@ public class ServiceDatos extends Service {
     boolean bReiniciar = false;
     boolean bReinicio;
 
+    PowerManager powerManager;
+    PowerManager.WakeLock wakeLock;
+
 
     // Handler that receives messages from the thread
     private final class ServiceHandler extends Handler {
@@ -188,11 +193,17 @@ public class ServiceDatos extends Service {
             timerGrabarGPS.cancel();
 
         cerrarConexiones();
+
+        wakeLock.release();
         super.onDestroy();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"MyApp::MyWakelockTag");
+        wakeLock.acquire();
+
         iNumDevices = intent.getIntExtra("NumDevices",1);
         iPeriodo = intent.getIntExtra("Periodo",20);
         lTiempoRefrescoDatos = intent.getLongExtra("Refresco", 120000);
@@ -322,6 +333,7 @@ public class ServiceDatos extends Service {
                     if (lDatosRecibidos[i] == lDatosRecibidosAnteriores[i] /*&& lDatosRecibidos[i] != 0*/) {
                         bReiniciar = true;
                         String sCadena = sdf.format(new Date()) + " ERROR: No recibidos datos de " + sAddresses[i] + "\n";
+                        publishSensorValues(0, MSG, sCadena);
                         try {
                             fLog.write(sCadena.getBytes());
                         } catch (IOException e) {}
@@ -341,7 +353,7 @@ public class ServiceDatos extends Service {
         };
 
         timerGrabarGPS = new Timer();
-        if (bSendServer)
+        if (bSendServer && bLocation)
             timerGrabarGPS.scheduleAtFixedRate(timerTaskGrabarGPS, lTiempoGPS, lTiempoGPS);
 
         realizarConexiones();
@@ -362,6 +374,7 @@ public class ServiceDatos extends Service {
             device = adapter.getRemoteDevice(sAddresses[i]);
 
             String sCadena = sdf.format(new Date()) + " Solicitud de conexión con " + sAddresses[i] + "\n";
+            publishSensorValues(0, MSG, sCadena);
             try {
                 fLog.write(sCadena.getBytes());
             } catch (IOException e) {}
@@ -387,6 +400,7 @@ public class ServiceDatos extends Service {
                 int iPuerto = pref.getInt("puerto", 8000);
 
                 String sCadena = sdf.format(new Date()) + " Creación de servicio de envío a servidor " + sServer + ":" + iPuerto + "\n";
+                publishSensorValues(0, MSG, sCadena);
                 try {
                     fLog.write(sCadena.getBytes());
                 } catch (IOException e) {}
@@ -556,6 +570,7 @@ public class ServiceDatos extends Service {
                 if (status == BluetoothGatt.GATT_SUCCESS)
                     if (newState == BluetoothGatt.STATE_CONNECTED) {
                         String sCadena = sdf.format(new Date()) + " Descubriendo servicios de " + gatt.getDevice().getAddress() + "\n";
+                        publishSensorValues(0, MSG, sCadena);
                         try {
                             fLog.write(sCadena.getBytes());
                         } catch (IOException e) {}
@@ -687,6 +702,7 @@ public class ServiceDatos extends Service {
 
     private void configPeriodo(BluetoothGatt btGatt, int firstPeriodo) {
         String sCadena = sdf.format(new Date()) + " Config periodo " + btGatt.getDevice().getAddress() + "\n";
+        publishSensorValues(0, MSG, sCadena);
         try {
             fLog.write(sCadena.getBytes());
         } catch (IOException e) {}
@@ -700,6 +716,7 @@ public class ServiceDatos extends Service {
 
     private void activarServicio(BluetoothGatt btGatt, int firstActivar) {
         String sCadena = sdf.format(new Date()) + " Activar servicio en " + btGatt.getDevice().getAddress() + "\n";
+        publishSensorValues(0, MSG, sCadena);
         try {
             fLog.write(sCadena.getBytes());
         } catch (IOException e) {}
@@ -728,6 +745,7 @@ public class ServiceDatos extends Service {
 
     private void habilitarServicio(BluetoothGatt gatt, int firstSensor) {
         String sCadena = sdf.format(new Date()) + " Habilitar servicio " + gatt.getDevice().getAddress() + "\n";
+        publishSensorValues(0, MSG, sCadena);
         try {
             fLog.write(sCadena.getBytes());
         } catch (IOException e) {}

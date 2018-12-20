@@ -8,6 +8,7 @@ import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.PowerManager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -27,6 +28,7 @@ public class Datos extends AppCompatActivity {
     private MiAdaptadorDatos adaptadorDatos;
     private TextView txtLongitud;
     private  TextView txtLatitud;
+    private TextView txtMensajes;
 
     Handler handler;
     boolean bSensing;
@@ -86,6 +88,7 @@ public class Datos extends AppCompatActivity {
         recyclerViewDatos = findViewById(R.id.recycler_viewDatos);
         txtLatitud = findViewById(R.id.textViewLatitud);
         txtLongitud = findViewById(R.id.textViewLongitud);
+        txtMensajes = findViewById(R.id.textViewMensajes);
 
         listaDatos = new BluetoothDataList(iNumDevices, sAddresses);
 
@@ -162,44 +165,49 @@ public class Datos extends AppCompatActivity {
                     bServicioParado = true;
                     unregisterReceiver(this);
                 }*/
-                if (iDevice != ServiceDatos.ERROR)
-                switch (iSensor) {
-                    //case IntentServiceDatos.GIROSCOPO:
-                    case ServiceDatos.GIROSCOPO:
-                        listaDatos.setMovimiento1(iDevice, sCadena);
-                        break;
-                    //case IntentServiceDatos.ACELEROMETRO:
-                    case ServiceDatos.ACELEROMETRO:
-                        listaDatos.setMovimiento2(iDevice, sCadena);
-                        break;
-                    //case IntentServiceDatos.MAGNETOMETRO:
-                    case ServiceDatos.MAGNETOMETRO:
-                        listaDatos.setMovimiento3(iDevice, sCadena);
-                        break;
-                    //case IntentServiceDatos.HUMEDAD:
-                    case ServiceDatos.HUMEDAD:
-                        listaDatos.setHumedad(iDevice, sCadena);
-                        break;
-                    //case IntentServiceDatos.LUZ:
-                    case ServiceDatos.LUZ:
-                        listaDatos.setLuz(iDevice, sCadena);
-                        break;
-                    //case IntentServiceDatos.BAROMETRO:
-                    case ServiceDatos.BAROMETRO:
-                        listaDatos.setBarometro(iDevice, sCadena);
-                        break;
-                    //case IntentServiceDatos.TEMPERATURA:
-                    case ServiceDatos.TEMPERATURA:
-                        listaDatos.setTemperatura(iDevice, sCadena);
-                        break;
-                    //case IntentServiceDatos.LOCALIZACION_LAT:
-                    case ServiceDatos.LOCALIZACION_LAT:
-                        txtLatitud.setText("Lat: " + sCadena);
-                        break;
-                    //case IntentServiceDatos.LOCALIZACION_LONG:
-                    case ServiceDatos.LOCALIZACION_LONG:
-                        txtLongitud.setText("Long: " + sCadena);
-                        break;
+                if (iDevice == ServiceDatos.MSG) {
+                    txtMensajes.append(sCadena.substring(16));
+                }
+                else {
+                    if (iDevice != ServiceDatos.ERROR)
+                        switch (iSensor) {
+                            //case IntentServiceDatos.GIROSCOPO:
+                            case ServiceDatos.GIROSCOPO:
+                                listaDatos.setMovimiento1(iDevice, sCadena);
+                                break;
+                            //case IntentServiceDatos.ACELEROMETRO:
+                            case ServiceDatos.ACELEROMETRO:
+                                listaDatos.setMovimiento2(iDevice, sCadena);
+                                break;
+                            //case IntentServiceDatos.MAGNETOMETRO:
+                            case ServiceDatos.MAGNETOMETRO:
+                                listaDatos.setMovimiento3(iDevice, sCadena);
+                                break;
+                            //case IntentServiceDatos.HUMEDAD:
+                            case ServiceDatos.HUMEDAD:
+                                listaDatos.setHumedad(iDevice, sCadena);
+                                break;
+                            //case IntentServiceDatos.LUZ:
+                            case ServiceDatos.LUZ:
+                                listaDatos.setLuz(iDevice, sCadena);
+                                break;
+                            //case IntentServiceDatos.BAROMETRO:
+                            case ServiceDatos.BAROMETRO:
+                                listaDatos.setBarometro(iDevice, sCadena);
+                                break;
+                            //case IntentServiceDatos.TEMPERATURA:
+                            case ServiceDatos.TEMPERATURA:
+                                listaDatos.setTemperatura(iDevice, sCadena);
+                                break;
+                            //case IntentServiceDatos.LOCALIZACION_LAT:
+                            case ServiceDatos.LOCALIZACION_LAT:
+                                txtLatitud.setText("Lat: " + sCadena);
+                                break;
+                            //case IntentServiceDatos.LOCALIZACION_LONG:
+                            case ServiceDatos.LOCALIZACION_LONG:
+                                txtLongitud.setText("Long: " + sCadena);
+                                break;
+                        }
                 }
             }
         }
@@ -210,6 +218,7 @@ public class Datos extends AppCompatActivity {
     public  void btnPararClick(View v) {
         stopService(intentChkServicio);
         unregisterReceiver(receiver);
+
         finish();
     }
 }

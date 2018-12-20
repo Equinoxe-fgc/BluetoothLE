@@ -181,6 +181,12 @@ public class MainActivity extends AppCompatActivity {
                 // We don't have permission so prompt the user
                 ActivityCompat.requestPermissions(this, PERMISSIONS_STORAGE, 1);
             }
+
+            permission = ActivityCompat.checkSelfPermission(this, Manifest.permission.WAKE_LOCK);
+            if (permission != PackageManager.PERMISSION_GRANTED) {
+                // We don't have permission so prompt the user
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WAKE_LOCK}, 1);
+            }
         }
     }
 
