@@ -36,6 +36,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Method;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -363,7 +364,23 @@ public class ServiceDatos extends Service {
         mServiceHandler.sendMessage(msg);
 
         return START_NOT_STICKY;
+        //return START_STICKY;
     }
+
+    private boolean refreshDeviceCache(BluetoothGatt gatt){
+        try {
+            BluetoothGatt localBluetoothGatt = gatt;
+            Method localMethod = localBluetoothGatt.getClass().getMethod("refresh", new Class[0]);
+            if (localMethod != null) {
+                boolean bool = ((Boolean) localMethod.invoke(localBluetoothGatt, new Object[0])).booleanValue();
+                return bool;
+            }
+        }
+        catch (Exception localException) {
+        }
+        return false;
+    }
+
 
     private void realizarConexiones() {
         BluetoothManager manager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
@@ -380,6 +397,7 @@ public class ServiceDatos extends Service {
             } catch (IOException e) {}
 
             btGatt[i] = device.connectGatt(this, true, mBluetoothGattCallback);
+            refreshDeviceCache(btGatt[i]);
         }
 
         bNetConnected = false;

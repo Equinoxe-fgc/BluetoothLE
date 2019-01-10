@@ -14,6 +14,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.text.DecimalFormat;
 import java.util.Timer;
@@ -21,7 +22,8 @@ import java.util.TimerTask;
 
 
 public class Datos extends AppCompatActivity {
-    final static long lTiempoRefrescoDatos = 120 * 1000;  // Tiempo de muestra de datos
+    //final static long lTiempoRefrescoDatos = 120 * 1000;  // Tiempo de muestra de datos
+    final static long lTiempoRefrescoDatos = 10 * 1000;  // Tiempo de muestra de datos
 
     BluetoothDataList listaDatos;
 
@@ -52,6 +54,13 @@ public class Datos extends AppCompatActivity {
 
     boolean bServicioParado;
     Intent intentChkServicio = null;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        Toast.makeText(this,"Resume Datos", Toast.LENGTH_LONG);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

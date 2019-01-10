@@ -102,6 +102,7 @@ public class checkServiceDatos extends Service {
 
 
         return START_NOT_STICKY;
+        //return START_STICKY;
     }
 
     private BroadcastReceiver receiver = new BroadcastReceiver() {
