@@ -1,5 +1,7 @@
 package com.equinoxe.bluetoothle;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -18,7 +20,9 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.wifi.WifiManager;
 import android.os.BatteryManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -27,6 +31,8 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.PowerManager;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -71,6 +77,8 @@ public class ServiceDatos extends Service {
     public final static int MSG = 30;
 
     public static final String NOTIFICATION = "com.equinoxe.bluetoothle.android.service.receiver";
+
+    public static final int CHANNEL_ID = 128;
 
     String sCadenaGiroscopo[];
     String sCadenaMagnetometro[];
@@ -148,6 +156,13 @@ public class ServiceDatos extends Service {
     PowerManager powerManager;
     PowerManager.WakeLock wakeLock;
 
+    int notificationId = 0;
+    NotificationCompat.Builder mBuilder;
+
+    String sServer;
+    int iPuerto;
+
+    WifiManager wifi;
 
     // Handler that receives messages from the thread
     private final class ServiceHandler extends Handler {
@@ -186,6 +201,7 @@ public class ServiceDatos extends Service {
         return null;
     }
 
+
     @Override
     public void onDestroy() {
         timerGrabarDatos.cancel();
@@ -205,6 +221,15 @@ public class ServiceDatos extends Service {
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"MyApp::MyWakelockTag");
         wakeLock.acquire();
 
+        createNotificationChannel();
+
+        mBuilder = new NotificationCompat.Builder(this, getString(R.string.channel_name))
+                .setSmallIcon(R.drawable.ic_launcher)
+                .setContentTitle(getString(R.string.app_name))
+                .setContentText("Refresco")
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setCategory(NotificationCompat.CATEGORY_ALARM);
+
         iNumDevices = intent.getIntExtra("NumDevices",1);
         iPeriodo = intent.getIntExtra("Periodo",20);
         lTiempoRefrescoDatos = intent.getLongExtra("Refresco", 120000);
@@ -223,6 +248,11 @@ public class ServiceDatos extends Service {
 
         bLocation = intent.getBooleanExtra("Location", false);
         bSendServer = intent.getBooleanExtra("SendServer", false);
+
+        /*if (bSendServer) {
+            wifi = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            wifi.setWifiEnabled(true);
+        }*/
 
         bReinicio = intent.getBooleanExtra("Reinicio", false);
 
@@ -322,6 +352,7 @@ public class ServiceDatos extends Service {
         final TimerTask timerTaskGrabarDatos = new TimerTask() {
             public void run() {
                 grabarMedidas();
+                //notiticacion();
             }
         };
 
@@ -335,9 +366,6 @@ public class ServiceDatos extends Service {
                         bReiniciar = true;
                         String sCadena = sdf.format(new Date()) + " ERROR: No recibidos datos de " + sAddresses[i] + "\n";
                         publishSensorValues(0, MSG, sCadena);
-                        try {
-                            fLog.write(sCadena.getBytes());
-                        } catch (IOException e) {}
                         publishSensorValues(0, ERROR, "");
                     } else
                         lDatosRecibidosAnteriores[i] = lDatosRecibidos[i];
@@ -363,8 +391,34 @@ public class ServiceDatos extends Service {
         msg.arg1 = startId;
         mServiceHandler.sendMessage(msg);
 
+        //notiticacion();
+
         return START_NOT_STICKY;
         //return START_STICKY;
+    }
+
+    private void createNotificationChannel() {
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is new and not in the support library
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = getString(R.string.channel_name);
+            String description = getString(R.string.channel_description);
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel(getString(R.string.channel_name), name, importance);
+            channel.setDescription(description);
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
+
+    private void notiticacion() {
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+
+        // notificationId is a unique int for each notification that you must define
+        notificationManager.notify(notificationId, mBuilder.build());
+        notificationId++;
     }
 
     private boolean refreshDeviceCache(BluetoothGatt gatt){
@@ -391,10 +445,7 @@ public class ServiceDatos extends Service {
             device = adapter.getRemoteDevice(sAddresses[i]);
 
             String sCadena = sdf.format(new Date()) + " Solicitud de conexión con " + sAddresses[i] + "\n";
-            publishSensorValues(0, MSG, sCadena);
-            try {
-                fLog.write(sCadena.getBytes());
-            } catch (IOException e) {}
+            enviarMensaje(sCadena);
 
             btGatt[i] = device.connectGatt(this, true, mBluetoothGattCallback);
             refreshDeviceCache(btGatt[i]);
@@ -406,22 +457,25 @@ public class ServiceDatos extends Service {
                 ConnectivityManager check = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
                 NetworkInfo info = check.getActiveNetworkInfo();
                 if (!info.isConnected()) {
+                    String sCadena = sdf.format(new Date()) + getResources().getString(R.string.ERROR_RED) + "\n";
+                    enviarMensaje(sCadena);
+
                     Toast.makeText(this, getResources().getString(R.string.ERROR_RED), Toast.LENGTH_LONG).show();
                 } else bNetConnected = true;
             } catch (Exception e) {
+                String sCadena = sdf.format(new Date()) + getResources().getString(R.string.ERROR_RED) + "\n";
+                enviarMensaje(sCadena);
+
                 Toast.makeText(this, getResources().getString(R.string.ERROR_RED), Toast.LENGTH_LONG).show();
             }
 
             if (bNetConnected) {
                 SharedPreferences pref = getApplicationContext().getSharedPreferences("Settings", MODE_PRIVATE);
-                String sServer = pref.getString("server", "127.0.0.1");
-                int iPuerto = pref.getInt("puerto", 8000);
+                sServer = pref.getString("server", "127.0.0.1");
+                iPuerto = pref.getInt("puerto", 8000);
 
                 String sCadena = sdf.format(new Date()) + " Creación de servicio de envío a servidor " + sServer + ":" + iPuerto + "\n";
-                publishSensorValues(0, MSG, sCadena);
-                try {
-                    fLog.write(sCadena.getBytes());
-                } catch (IOException e) {}
+                enviarMensaje(sCadena);
 
                 envioAsync = new EnvioDatosSocket(sServer, iPuerto, SENSOR_MOV_DATA_LEN + 1);
                 envioAsync.start();
@@ -433,6 +487,13 @@ public class ServiceDatos extends Service {
             ultimaLocalizacion();
             activarProveedores();
         }
+    }
+
+    private void enviarMensaje(String sMsg) {
+        publishSensorValues(0, MSG, sMsg);
+        try {
+            fLog.write(sMsg.getBytes());
+        } catch (IOException e) {}
     }
 
     private void ultimaLocalizacion() {
@@ -567,6 +628,8 @@ public class ServiceDatos extends Service {
         } catch (Throwable throwable) {
             throwable.printStackTrace();
         }
+        /*if (wifi.isWifiEnabled())
+            wifi.setWifiEnabled(false);*/
     }
 
     private int findGattIndex(BluetoothGatt btGatt) {
@@ -589,9 +652,6 @@ public class ServiceDatos extends Service {
                     if (newState == BluetoothGatt.STATE_CONNECTED) {
                         String sCadena = sdf.format(new Date()) + " Descubriendo servicios de " + gatt.getDevice().getAddress() + "\n";
                         publishSensorValues(0, MSG, sCadena);
-                        try {
-                            fLog.write(sCadena.getBytes());
-                        } catch (IOException e) {}
 
                         btGatt[findGattIndex(gatt)].discoverServices();
                     }
@@ -685,8 +745,6 @@ public class ServiceDatos extends Service {
                     } catch (Exception e) {}*/
 
                 //envoltorioDatosMovimiento.setDatos(movimiento);
-                if (bSendServer)
-                    envioAsync.setData((byte)iDevice, movimiento[iDevice]);
 
                 lDatosRecibidos[iDevice]++;
 
@@ -707,6 +765,22 @@ public class ServiceDatos extends Service {
                     }
                 }
 
+                try {
+                    if (bSendServer)
+                        if (envioAsync == null) {
+                            String sCadena = sdf.format(new Date()) + " envioAsync es NULL\n";
+                            publishSensorValues(0, MSG, sCadena);
+                            //notiticacion();
+                            envioAsync = new EnvioDatosSocket(sServer, iPuerto, SENSOR_MOV_DATA_LEN + 1);
+                            envioAsync.start();
+                        }
+                        //if (lDatosRecibidos[iDevice] % 512 == 0)
+                            envioAsync.setData((byte) iDevice, movimiento[iDevice]);
+                } catch (Exception e) {
+                    String sCadena = sdf.format(new Date()) + " Excepción de envío: " + e.getMessage() + "\n";
+                    publishSensorValues(0, MSG, sCadena);
+                }
+
                 /*} else if (characteristic.getUuid().compareTo(UUIDs.UUID_HUM_DATA) == 0) {
                     humedad = characteristic.getValue();
                     procesaHumedad(humedad, findGattIndex(gatt));
@@ -721,9 +795,6 @@ public class ServiceDatos extends Service {
     private void configPeriodo(BluetoothGatt btGatt, int firstPeriodo) {
         String sCadena = sdf.format(new Date()) + " Config periodo " + btGatt.getDevice().getAddress() + "\n";
         publishSensorValues(0, MSG, sCadena);
-        try {
-            fLog.write(sCadena.getBytes());
-        } catch (IOException e) {}
 
         BluetoothGattCharacteristic characteristic;
 
@@ -735,9 +806,6 @@ public class ServiceDatos extends Service {
     private void activarServicio(BluetoothGatt btGatt, int firstActivar) {
         String sCadena = sdf.format(new Date()) + " Activar servicio en " + btGatt.getDevice().getAddress() + "\n";
         publishSensorValues(0, MSG, sCadena);
-        try {
-            fLog.write(sCadena.getBytes());
-        } catch (IOException e) {}
 
         BluetoothGattCharacteristic characteristic;
 
@@ -764,9 +832,6 @@ public class ServiceDatos extends Service {
     private void habilitarServicio(BluetoothGatt gatt, int firstSensor) {
         String sCadena = sdf.format(new Date()) + " Habilitar servicio " + gatt.getDevice().getAddress() + "\n";
         publishSensorValues(0, MSG, sCadena);
-        try {
-            fLog.write(sCadena.getBytes());
-        } catch (IOException e) {}
 
         BluetoothGattService service;
         BluetoothGattDescriptor descriptor;
