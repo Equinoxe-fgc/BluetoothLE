@@ -766,7 +766,7 @@ public class ServiceDatos extends Service {
                 }
 
                 try {
-                    if (bSendServer)
+                    if (bSendServer) {
                         if (envioAsync == null) {
                             String sCadena = sdf.format(new Date()) + " envioAsync es NULL\n";
                             publishSensorValues(0, MSG, sCadena);
@@ -775,7 +775,8 @@ public class ServiceDatos extends Service {
                             envioAsync.start();
                         }
                         //if (lDatosRecibidos[iDevice] % 512 == 0)
-                            envioAsync.setData((byte) iDevice, movimiento[iDevice]);
+                        envioAsync.setData((byte) iDevice, movimiento[iDevice]);
+                    }
                 } catch (Exception e) {
                     String sCadena = sdf.format(new Date()) + " Excepción de envío: " + e.getMessage() + "\n";
                     publishSensorValues(0, MSG, sCadena);
