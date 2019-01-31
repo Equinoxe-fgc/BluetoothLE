@@ -40,7 +40,7 @@
     <string name="LOCATION_DISABLED">La localización está deshabilitada. Habilite el GPS y WiFi (o datos)</string>
     <string name="LOCATION_FAILED">Error de localización. Habilite el GPS y WiFi (o datos)</string>
     <string name="EnvioAservidor">Enviar datos a servidor</string>
-    <string name="CompileDate">Versión: 22/01/2019</string>
+    <string name="CompileDate">Versión: 31/01/2019</string>
     <string name="channel_name">CANAL_NOTIFICACION</string>
     <string name="channel_description">Canal para notificaciones</string>
 </resources>
