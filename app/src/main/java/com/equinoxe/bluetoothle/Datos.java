@@ -13,6 +13,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -55,11 +57,12 @@ public class Datos extends AppCompatActivity {
     boolean bServicioParado;
     Intent intentChkServicio = null;
 
+
     @Override
     protected void onResume() {
         super.onResume();
 
-        Toast.makeText(this,"Resume Datos", Toast.LENGTH_LONG);
+        //Toast.makeText(this,"Resume Datos", Toast.LENGTH_LONG);
     }
 
     @Override
@@ -70,8 +73,6 @@ public class Datos extends AppCompatActivity {
 
         RecyclerView recyclerViewDatos;
         RecyclerView.LayoutManager layoutManager;
-
-        //getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         df = new DecimalFormat("###.##");
 
@@ -93,6 +94,16 @@ public class Datos extends AppCompatActivity {
 
         bLocation = extras.getBoolean("Location");
         bSendServer = extras.getBoolean("SendServer");
+
+        if (bSendServer) {
+            Window window = getWindow();
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+            WindowManager.LayoutParams layoutParams = window.getAttributes();
+            layoutParams.screenBrightness = 1f / 255f;
+            window.setAttributes(layoutParams);
+        }
+
 
         recyclerViewDatos = findViewById(R.id.recycler_viewDatos);
         txtLatitud = findViewById(R.id.textViewLatitud);
@@ -135,6 +146,7 @@ public class Datos extends AppCompatActivity {
             }
         });
     }
+
 
 
     private void crearServicio() {

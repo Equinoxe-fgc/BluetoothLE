@@ -426,8 +426,7 @@ public class ServiceDatos extends Service {
             BluetoothGatt localBluetoothGatt = gatt;
             Method localMethod = localBluetoothGatt.getClass().getMethod("refresh", new Class[0]);
             if (localMethod != null) {
-                boolean bool = ((Boolean) localMethod.invoke(localBluetoothGatt, new Object[0])).booleanValue();
-                return bool;
+                return ((Boolean) localMethod.invoke(localBluetoothGatt, new Object[0])).booleanValue();
             }
         }
         catch (Exception localException) {
@@ -444,7 +443,7 @@ public class ServiceDatos extends Service {
         for (int i = 0; i < iNumDevices; i++) {
             device = adapter.getRemoteDevice(sAddresses[i]);
 
-            String sCadena = sdf.format(new Date()) + " Solicitud de conexión con " + sAddresses[i] + "\n";
+            String sCadena = sdf.format(new Date()) + " Solicitud de conexión con " + sAddresses[i].substring(sAddresses[i].length()-2) + "\n";
             enviarMensaje(sCadena);
 
             btGatt[i] = device.connectGatt(this, true, mBluetoothGattCallback);
@@ -650,7 +649,8 @@ public class ServiceDatos extends Service {
                 super.onConnectionStateChange(gatt, status, newState);
                 if (status == BluetoothGatt.GATT_SUCCESS)
                     if (newState == BluetoothGatt.STATE_CONNECTED) {
-                        String sCadena = sdf.format(new Date()) + " Descubriendo servicios de " + gatt.getDevice().getAddress() + "\n";
+                        String sAddress = gatt.getDevice().getAddress();
+                        String sCadena = sdf.format(new Date()) + " Descubriendo servicios de " + sAddress.substring(sAddress.length()-2) + "\n";
                         publishSensorValues(0, MSG, sCadena);
 
                         btGatt[findGattIndex(gatt)].discoverServices();
@@ -794,7 +794,8 @@ public class ServiceDatos extends Service {
     }
 
     private void configPeriodo(BluetoothGatt btGatt, int firstPeriodo) {
-        String sCadena = sdf.format(new Date()) + " Config periodo " + btGatt.getDevice().getAddress() + "\n";
+        String sAddress = btGatt.getDevice().getAddress();
+        String sCadena = sdf.format(new Date()) + " Config periodo " + sAddress.substring(sAddress.length()-2) + "\n";
         publishSensorValues(0, MSG, sCadena);
 
         BluetoothGattCharacteristic characteristic;
@@ -805,7 +806,8 @@ public class ServiceDatos extends Service {
     }
 
     private void activarServicio(BluetoothGatt btGatt, int firstActivar) {
-        String sCadena = sdf.format(new Date()) + " Activar servicio en " + btGatt.getDevice().getAddress() + "\n";
+        String sAddress = btGatt.getDevice().getAddress();
+        String sCadena = sdf.format(new Date()) + " Activar servicio en " + sAddress.substring(sAddress.length()-2) + "\n";
         publishSensorValues(0, MSG, sCadena);
 
         BluetoothGattCharacteristic characteristic;
@@ -831,7 +833,8 @@ public class ServiceDatos extends Service {
 
 
     private void habilitarServicio(BluetoothGatt gatt, int firstSensor) {
-        String sCadena = sdf.format(new Date()) + " Habilitar servicio " + gatt.getDevice().getAddress() + "\n";
+        String sAddress = gatt.getDevice().getAddress();
+        String sCadena = sdf.format(new Date()) + " Habilitar servicio " + sAddress.substring(sAddress.length()-2) + "\n";
         publishSensorValues(0, MSG, sCadena);
 
         BluetoothGattService service;
@@ -1012,7 +1015,7 @@ public class ServiceDatos extends Service {
         aux = movimiento[6];
         //aux &= 0x00000000000000FF;
         valorAcelX |= aux;
-        fValorAcelX = (float) valorAcelX / (32768 / 4);
+        fValorAcelX = (float) valorAcelX / (32768f / 4f);
 
         valorAcelY = movimiento[9];
         //valorAcelY &= 0x00000000000000FF;
@@ -1021,7 +1024,7 @@ public class ServiceDatos extends Service {
         aux = movimiento[8];
         //aux &= 0x00000000000000FF;
         valorAcelY |= aux;
-        fValorAcelY = (float) valorAcelY / (32768 / 4);
+        fValorAcelY = (float) valorAcelY / (32768f / 4f);
 
         valorAcelZ = movimiento[11];
         //valorAcelZ &= 0x00000000000000FF;
@@ -1030,7 +1033,7 @@ public class ServiceDatos extends Service {
         aux = movimiento[10];
         //aux &= 0x00000000000000FF;
         valorAcelZ |= aux;
-        fValorAcelZ = (float) valorAcelZ / (32768 / 4);
+        fValorAcelZ = (float) valorAcelZ / (32768f / 4f);
 
         sCadenaAcelerometro[iDevice] = "A -> X: " + df.format(fValorAcelX) + " " + getString(R.string.AccelerometerUnit) + " ";
         sCadenaAcelerometro[iDevice] += "   Y: " + df.format(fValorAcelY) + " " + getString(R.string.AccelerometerUnit) + " ";

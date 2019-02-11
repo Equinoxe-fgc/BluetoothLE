@@ -25,10 +25,10 @@
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity
             android:name=".Conexion"
             android:label="@string/title_activity_conexion"
@@ -38,6 +38,7 @@
             android:label="Datos"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity android:name=".Settings" />
+
 
         <service android:name="com.equinoxe.bluetoothle.ServiceDatos" >
         </service>
