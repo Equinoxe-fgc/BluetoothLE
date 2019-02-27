@@ -117,7 +117,7 @@ public class ServiceDatos extends Service {
 
     boolean bLocation;
     LocationManager locManager;
-    Location mejorLocaliz;
+    Location mejorLocaliz = null;
     boolean bGPSEnabled;
     boolean bNetworkEnabled;
 
@@ -377,7 +377,8 @@ public class ServiceDatos extends Service {
 
         final TimerTask timerTaskGrabarGPS = new TimerTask() {
             public void run() {
-                envioAsync.setGPS(mejorLocaliz.getLatitude(), mejorLocaliz.getLongitude());
+                if (mejorLocaliz != null)
+                    envioAsync.setGPS(mejorLocaliz.getLatitude(), mejorLocaliz.getLongitude());
             }
         };
 
@@ -423,10 +424,9 @@ public class ServiceDatos extends Service {
 
     private boolean refreshDeviceCache(BluetoothGatt gatt){
         try {
-            BluetoothGatt localBluetoothGatt = gatt;
-            Method localMethod = localBluetoothGatt.getClass().getMethod("refresh", new Class[0]);
+            Method localMethod = gatt.getClass().getMethod("refresh", new Class[0]);
             if (localMethod != null) {
-                return ((Boolean) localMethod.invoke(localBluetoothGatt, new Object[0])).booleanValue();
+                return ((Boolean) localMethod.invoke(gatt, new Object[0])).booleanValue();
             }
         }
         catch (Exception localException) {
@@ -540,8 +540,10 @@ public class ServiceDatos extends Service {
             /*if (bSendServer) {
                 envioAsync.setGPS(mejorLocaliz.getLatitude(), mejorLocaliz.getLongitude());
             }*/
-            publishSensorValues(LOCALIZACION_LAT, 0, Double.toString(mejorLocaliz.getLatitude()));
-            publishSensorValues(LOCALIZACION_LONG, 0, Double.toString(mejorLocaliz.getLongitude()));
+            try {
+                publishSensorValues(LOCALIZACION_LAT, 0, Double.toString(mejorLocaliz.getLatitude()));
+                publishSensorValues(LOCALIZACION_LONG, 0, Double.toString(mejorLocaliz.getLongitude()));
+            } catch (Exception e) {}
         }
 
         public void onProviderDisabled(String provider) {
