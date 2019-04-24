@@ -49,6 +49,9 @@ public class Datos extends AppCompatActivity {
     boolean bLocation;
     boolean bSendServer;
 
+    boolean bTime;
+    long lTime;
+
     int iNumDevices;
     int iPeriodo;
 
@@ -57,6 +60,7 @@ public class Datos extends AppCompatActivity {
     boolean bServicioParado;
     Intent intentChkServicio = null;
 
+    Timer timerTiempo;
 
     @Override
     protected void onResume() {
@@ -94,6 +98,9 @@ public class Datos extends AppCompatActivity {
 
         bLocation = extras.getBoolean("Location");
         bSendServer = extras.getBoolean("SendServer");
+
+        bTime = extras.getBoolean("bTime");
+        lTime = extras.getLong("Time");
 
         if (bSendServer) {
             Window window = getWindow();
@@ -134,6 +141,17 @@ public class Datos extends AppCompatActivity {
 
         registerReceiver(receiver, new IntentFilter(ServiceDatos.NOTIFICATION));
 
+        if (bTime) {
+            final TimerTask timerTaskTiempo = new TimerTask() {
+                public void run() {
+                    btnPararClick(null);
+                }
+            };
+
+            timerTiempo = new Timer();
+            timerTiempo.schedule(timerTaskTiempo, lTime);
+        }
+
 
         handler = new Handler();
         runOnUiThread(new Runnable(){
@@ -166,6 +184,8 @@ public class Datos extends AppCompatActivity {
         intentChkServicio.putExtra("Magnetometro", bMagnetometro);
         intentChkServicio.putExtra("Location", bLocation);
         intentChkServicio.putExtra("SendServer", bSendServer);
+        //intentChkServicio.putExtra("bTime", bTime);
+        //intentChkServicio.putExtra("Time", lTime);
 
         startService(intentChkServicio);
     }

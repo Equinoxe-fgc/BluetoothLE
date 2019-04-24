@@ -34,6 +34,9 @@ public class checkServiceDatos extends Service {
     boolean bLocation;
     boolean bSendServer;
 
+    boolean bTime;
+    long lTime;
+
     int iNumDevices;
     int iPeriodo;
     long lTiempoRefrescoDatos;
@@ -72,6 +75,9 @@ public class checkServiceDatos extends Service {
         intentServicio.putExtra("Location", bLocation);
         intentServicio.putExtra("SendServer", bSendServer);
 
+        //intentServicio.putExtra("bTime", bTime);
+        //intentServicio.putExtra("Time", lTime);
+
         intentServicio.putExtra("Reinicio", false);
 
         startService(intentServicio);
@@ -95,6 +101,9 @@ public class checkServiceDatos extends Service {
 
         bLocation = intent.getBooleanExtra("Location", false);
         bSendServer = intent.getBooleanExtra("SendServer", false);
+
+        //bTime = intent.getBooleanExtra("bTime", false);
+        //lTime = intent.getLongExtra("Time", 0);
 
         crearServicio();
 

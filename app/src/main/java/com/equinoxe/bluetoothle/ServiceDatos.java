@@ -143,6 +143,9 @@ public class ServiceDatos extends Service {
     private String sAddresses[] = new String[MAX_SENSOR_NUMBER];
     boolean bSendServer;
 
+    boolean bTime;
+    long lTime;
+
     private Looper mServiceLooper;
     private ServiceHandler mServiceHandler;
 
@@ -248,6 +251,9 @@ public class ServiceDatos extends Service {
 
         bLocation = intent.getBooleanExtra("Location", false);
         bSendServer = intent.getBooleanExtra("SendServer", false);
+
+        //bTime = intent.getBooleanExtra("bTime", false);
+        //lTime = intent.getLongExtra("Time", 0);
 
         /*if (bSendServer) {
             wifi = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);

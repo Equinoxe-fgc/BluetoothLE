@@ -24,6 +24,7 @@ import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import java.io.BufferedReader;
@@ -48,6 +49,8 @@ public class Conexion extends AppCompatActivity {
     private Button btnStart;
     private CheckBox chkGPS;
     private CheckBox chkSendServer;
+    private CheckBox chkTiempo;
+    private TextView txtTiempo;
     private RecyclerView recyclerViewSensores;
     private MiAdaptadorSensores adaptadorSensores;
     private RecyclerView.LayoutManager layoutManager;
@@ -64,6 +67,8 @@ public class Conexion extends AppCompatActivity {
         btnStart = findViewById(R.id.btnStart);
         chkGPS = findViewById(R.id.chkGPS);
         chkSendServer = findViewById(R.id.chkEnvioServidor);
+        chkTiempo = findViewById(R.id.chkTiempo);
+        txtTiempo = findViewById(R.id.txtTiempo);
 
         listaServicesInfo = new BluetoothServiceInfoList();
 
@@ -83,6 +88,18 @@ public class Conexion extends AppCompatActivity {
         btGatt = device.connectGatt(this, false, mBluetoothGattCallback);
 
         handler.removeCallbacks(sendUpdatesToUI);
+
+
+        chkTiempo.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (((CompoundButton) view).isChecked()){
+                    txtTiempo.setEnabled(true);
+                } else {
+                    txtTiempo.setEnabled(false);
+                }
+            }
+        });
     }
 
 
@@ -204,6 +221,10 @@ public class Conexion extends AppCompatActivity {
 
         intent.putExtra("Location", chkGPS.isChecked());
         intent.putExtra("SendServer", chkSendServer.isChecked());
+        intent.putExtra("bTime",chkTiempo.isChecked());
+        if (chkTiempo.isChecked())
+            txtTiempo.setText("0");
+        intent.putExtra("Time", 1000*Integer.valueOf(txtTiempo.getText().toString()));
 
         startActivity(intent);
     }
