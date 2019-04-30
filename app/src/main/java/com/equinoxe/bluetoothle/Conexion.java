@@ -51,6 +51,7 @@ public class Conexion extends AppCompatActivity {
     private CheckBox chkSendServer;
     private CheckBox chkTiempo;
     private TextView txtTiempo;
+    private CheckBox chkWebNavigation;
     private RecyclerView recyclerViewSensores;
     private MiAdaptadorSensores adaptadorSensores;
     private RecyclerView.LayoutManager layoutManager;
@@ -69,6 +70,7 @@ public class Conexion extends AppCompatActivity {
         chkSendServer = findViewById(R.id.chkEnvioServidor);
         chkTiempo = findViewById(R.id.chkTiempo);
         txtTiempo = findViewById(R.id.txtTiempo);
+        chkWebNavigation = findViewById(R.id.chkWebNavigation);
 
         listaServicesInfo = new BluetoothServiceInfoList();
 
@@ -222,9 +224,11 @@ public class Conexion extends AppCompatActivity {
         intent.putExtra("Location", chkGPS.isChecked());
         intent.putExtra("SendServer", chkSendServer.isChecked());
         intent.putExtra("bTime",chkTiempo.isChecked());
-        if (chkTiempo.isChecked())
+        intent.putExtra("WebNavigation", chkWebNavigation.isChecked());
+        if (!chkTiempo.isChecked())
             txtTiempo.setText("0");
-        intent.putExtra("Time", 1000*Integer.valueOf(txtTiempo.getText().toString()));
+        long lTime = 1000*Integer.valueOf(txtTiempo.getText().toString());
+        intent.putExtra("Time", lTime);
 
         startActivity(intent);
     }

@@ -15,17 +15,25 @@ import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.text.DecimalFormat;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.Vector;
 
 
 public class Datos extends AppCompatActivity {
     //final static long lTiempoRefrescoDatos = 120 * 1000;  // Tiempo de muestra de datos
     final static long lTiempoRefrescoDatos = 10 * 1000;  // Tiempo de muestra de datos
+
+    final static int iMIN_READ_TIME = 15000;
+    final static int iMIN_RANDOM_TIME = 5000;
+    final static int iMAX_RANDOM_TIME = 30000;
 
     BluetoothDataList listaDatos;
 
@@ -48,6 +56,7 @@ public class Datos extends AppCompatActivity {
 
     boolean bLocation;
     boolean bSendServer;
+    boolean bWebNavigation;
 
     boolean bTime;
     long lTime;
@@ -61,6 +70,18 @@ public class Datos extends AppCompatActivity {
     Intent intentChkServicio = null;
 
     Timer timerTiempo;
+
+
+    protected WebView webView;
+    private TextView textURL;
+    protected Vector links;
+    protected Vector linksInicial;
+    protected String sLinks = "";
+    protected boolean bTerminado;
+    Random r;
+    int random;
+
+
 
     @Override
     protected void onResume() {
@@ -98,17 +119,18 @@ public class Datos extends AppCompatActivity {
 
         bLocation = extras.getBoolean("Location");
         bSendServer = extras.getBoolean("SendServer");
+        bWebNavigation = extras.getBoolean("WebNavigation");
 
         bTime = extras.getBoolean("bTime");
         lTime = extras.getLong("Time");
 
-        if (bSendServer) {
+        if (bSendServer || bWebNavigation) {
             Window window = getWindow();
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-            WindowManager.LayoutParams layoutParams = window.getAttributes();
+            /*WindowManager.LayoutParams layoutParams = window.getAttributes();
             layoutParams.screenBrightness = 1f / 255f;
-            window.setAttributes(layoutParams);
+            window.setAttributes(layoutParams);*/
         }
 
 
@@ -132,6 +154,42 @@ public class Datos extends AppCompatActivity {
             txtLongitud.setVisibility(View.GONE);
             txtLatitud.setVisibility(View.GONE);
         }
+
+        if (bWebNavigation) {
+            bTemperatura = false;
+            linksInicial = new Vector();
+            linksInicial.addElement("http://www.wikipedia.com");
+            linksInicial.addElement("https://www.diariosur.es/");
+            linksInicial.addElement("https://elpais.com/");
+            linksInicial.addElement("https://www.abc.es/");
+            linksInicial.addElement("https://www.elmundo.es/");
+            linksInicial.addElement("https://www.uma.es/");
+            linksInicial.addElement("https://www.instructables.com/");
+            linksInicial.addElement("https://www.amazon.es/");
+            linksInicial.addElement("https://www.agenciatributaria.es/");
+            linksInicial.addElement("http://www.malaga.eu/");
+
+            links = new Vector();
+            r = new Random();
+
+            webView = findViewById(R.id.webView);
+
+            webView.getSettings().setJavaScriptEnabled(true);
+            webView.addJavascriptInterface(new MyJavaScriptInterface(this), "HtmlViewer");
+
+            random = r.nextInt(linksInicial.size());
+            String sURL = (String) linksInicial.elementAt(random);
+            webView.loadUrl(sURL);
+            bTerminado = false;
+
+            webView.setWebViewClient(new WebViewClient() {
+                @Override
+                public void onPageFinished(WebView view, String url) {
+                    webView.loadUrl("javascript:window.HtmlViewer.showHTML" +
+                            "('<html>'+document.getElementsByTagName('html')[0].innerHTML+'</html>');");
+                }
+            });}
+
 
         bSensing = false;
 
@@ -161,6 +219,30 @@ public class Datos extends AppCompatActivity {
                     adaptadorDatos.notifyDataSetChanged();
                 }
                 handler.postDelayed(this, lTiempoRefrescoDatos);
+
+                if (bWebNavigation) {
+                    if (bTerminado) {
+                        bTerminado = false;
+                        if (links.isEmpty()) {
+                            webView.goBack();
+                        } else {
+                            String sURL;
+                            random = r.nextInt(100);
+                            if (random < 20) {
+                                random = r.nextInt(linksInicial.size());
+                                sURL = (String) linksInicial.elementAt(random);
+                            } else {
+                                random = r.nextInt(links.size());
+                                sURL = (String) links.elementAt(random);
+
+                            }
+                            webView.loadUrl(sURL);
+                        }
+                    }
+
+                    random = r.nextInt(iMAX_RANDOM_TIME - iMIN_RANDOM_TIME) + iMIN_RANDOM_TIME;
+                    handler.postDelayed(this, iMIN_READ_TIME + random);
+                }
             }
         });
     }
@@ -261,5 +343,42 @@ public class Datos extends AppCompatActivity {
         unregisterReceiver(receiver);
 
         finish();
+    }
+
+
+    class MyJavaScriptInterface {
+        private Context ctx;
+
+        MyJavaScriptInterface(Context ctx) {
+            this.ctx = ctx;
+        }
+
+        @android.webkit.JavascriptInterface
+        public void showHTML(String html) {
+            int index1, index2;
+            String sURL;
+            sLinks = "";
+            links.clear();
+
+            int indexA = html.indexOf("<a");
+            while (indexA >= 0){
+                index1 = html.indexOf("href=\"", indexA);
+                index2 = html.indexOf('\"', index1 + 7);
+
+                String sSub = html.substring(index1+6, index1+10);
+                if (sSub.compareToIgnoreCase("http") == 0 || sSub.compareToIgnoreCase("https") == 0) {
+                    sURL = html.substring(index1 + 6, index2);
+                    sLinks += "\n" + sURL + "\n";
+                    links.addElement(sURL);
+                }
+
+                indexA = html.indexOf("<a", index2 + 1);
+            }
+
+            bTerminado = true;
+            //new AlertDialog.Builder(ctx).setTitle("HTML").setMessage(sLinks)
+            //        .setPositiveButton(android.R.string.ok, null).setCancelable(false).create().show();
+        }
+
     }
 }
