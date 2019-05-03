@@ -31,9 +31,9 @@ public class Datos extends AppCompatActivity {
     //final static long lTiempoRefrescoDatos = 120 * 1000;  // Tiempo de muestra de datos
     final static long lTiempoRefrescoDatos = 10 * 1000;  // Tiempo de muestra de datos
 
-    final static int iMIN_READ_TIME = 15000;
-    final static int iMIN_RANDOM_TIME = 5000;
-    final static int iMAX_RANDOM_TIME = 30000;
+    final static int iMIN_READ_TIME = 15;
+    final static int iMIN_RANDOM_TIME = 5;
+    final static int iMAX_RANDOM_TIME = 30;
 
     BluetoothDataList listaDatos;
 
@@ -42,7 +42,8 @@ public class Datos extends AppCompatActivity {
     private  TextView txtLatitud;
     private TextView txtMensajes;
 
-    Handler handler;
+    Handler handlerDatos;
+    Handler handlerWeb;
     boolean bSensing;
     DecimalFormat df;
 
@@ -73,7 +74,6 @@ public class Datos extends AppCompatActivity {
 
 
     protected WebView webView;
-    private TextView textURL;
     protected Vector links;
     protected Vector linksInicial;
     protected String sLinks = "";
@@ -159,15 +159,11 @@ public class Datos extends AppCompatActivity {
             bTemperatura = false;
             linksInicial = new Vector();
             linksInicial.addElement("http://www.wikipedia.com");
-            linksInicial.addElement("https://www.diariosur.es/");
-            linksInicial.addElement("https://elpais.com/");
-            linksInicial.addElement("https://www.abc.es/");
-            linksInicial.addElement("https://www.elmundo.es/");
-            linksInicial.addElement("https://www.uma.es/");
-            linksInicial.addElement("https://www.instructables.com/");
-            linksInicial.addElement("https://www.amazon.es/");
-            linksInicial.addElement("https://www.agenciatributaria.es/");
-            linksInicial.addElement("http://www.malaga.eu/");
+            linksInicial.addElement("https://tapeline.info/v2/index.php?");
+            linksInicial.addElement("https://www.c64-wiki.com/");
+            linksInicial.addElement("https://www.worldofspectrum.org/");
+            linksInicial.addElement("http://www.cpcwiki.eu/index.php/Main_Page");
+            linksInicial.addElement("https://www.nvidia.com/es-es/");
 
             links = new Vector();
             r = new Random();
@@ -211,22 +207,25 @@ public class Datos extends AppCompatActivity {
         }
 
 
-        handler = new Handler();
+        handlerDatos = new Handler();
+        handlerWeb = new Handler();
         runOnUiThread(new Runnable(){
             @Override
             public void run(){
                 if (bSensing) {
                     adaptadorDatos.notifyDataSetChanged();
                 }
-                handler.postDelayed(this, lTiempoRefrescoDatos);
+                handlerDatos.postDelayed(this, lTiempoRefrescoDatos);
 
                 if (bWebNavigation) {
-                    if (bTerminado) {
+                    //if (bTerminado) {
                         bTerminado = false;
+                        String sURL;
+
                         if (links.isEmpty()) {
-                            webView.goBack();
+                            random = r.nextInt(linksInicial.size());
+                            sURL = (String) linksInicial.elementAt(random);
                         } else {
-                            String sURL;
                             random = r.nextInt(100);
                             if (random < 20) {
                                 random = r.nextInt(linksInicial.size());
@@ -234,14 +233,13 @@ public class Datos extends AppCompatActivity {
                             } else {
                                 random = r.nextInt(links.size());
                                 sURL = (String) links.elementAt(random);
-
                             }
-                            webView.loadUrl(sURL);
                         }
-                    }
+                        webView.loadUrl(sURL);
 
-                    random = r.nextInt(iMAX_RANDOM_TIME - iMIN_RANDOM_TIME) + iMIN_RANDOM_TIME;
-                    handler.postDelayed(this, iMIN_READ_TIME + random);
+                        random = r.nextInt(iMAX_RANDOM_TIME - iMIN_RANDOM_TIME) + iMIN_RANDOM_TIME;
+                        //handlerWeb.postDelayed(this, (iMIN_READ_TIME + random)*1000);
+                    //}
                 }
             }
         });
