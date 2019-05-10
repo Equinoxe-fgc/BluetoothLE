@@ -128,9 +128,11 @@ public class Datos extends AppCompatActivity {
             Window window = getWindow();
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-            /*WindowManager.LayoutParams layoutParams = window.getAttributes();
-            layoutParams.screenBrightness = 1f / 255f;
-            window.setAttributes(layoutParams);*/
+            if (bSendServer) {
+                WindowManager.LayoutParams layoutParams = window.getAttributes();
+                layoutParams.screenBrightness = 1f / 255f;
+                window.setAttributes(layoutParams);
+            }
         }
 
 
