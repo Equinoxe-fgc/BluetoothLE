@@ -3,10 +3,10 @@ package com.equinoxe.bluetoothle;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BluetoothDataList {
+class BluetoothDataList {
     private List<BluetoothData> vectorData;
 
-    public BluetoothDataList(int iSize, String sAddresses[]) {
+    BluetoothDataList(int iSize, String[] sAddresses) {
         this.vectorData = new ArrayList<>();
 
         for (int i = 0; i < iSize; i++) {
@@ -14,43 +14,47 @@ public class BluetoothDataList {
         }
     }
 
-    public BluetoothData getBluetoothData(int iPos) {
+    BluetoothData getBluetoothData(int iPos) {
         return vectorData.get(iPos);
     }
 
-    public int getSize() {
+    int getSize() {
         return vectorData.size();
     }
 
-    public void setAddress(int iPos, String sAddress) {
+    void setAddress(int iPos, String sAddress) {
         vectorData.get(iPos).setAddress(sAddress);
     }
 
-    public void setHumedad(int iPos, String sHumedad) {
+    void setHumedad(int iPos, String sHumedad) {
         vectorData.get(iPos).setHumedad(sHumedad);
     }
 
-    public void setBarometro(int iPos, String sBarometro) {
+    void setBarometro(int iPos, String sBarometro) {
         vectorData.get(iPos).setBarometro(sBarometro);
     }
 
-    public void setLuz(int iPos, String sLuz) {
+    void setLuz(int iPos, String sLuz) {
         vectorData.get(iPos).setLuz(sLuz);
     }
 
-    public void setTemperatura(int iPos, String sTemperatura) {
+    void setTemperatura(int iPos, String sTemperatura) {
         vectorData.get(iPos).setTemperatura(sTemperatura);
     }
 
-    public void setMovimiento1(int iPos, String sMovimiento1) {
+    void setMovimiento1(int iPos, String sMovimiento1) {
         vectorData.get(iPos).setMovimiento1(sMovimiento1);
     }
 
-    public void setMovimiento2(int iPos, String sMovimiento2) {
+    void setMovimiento2(int iPos, String sMovimiento2) {
         vectorData.get(iPos).setMovimiento2(sMovimiento2);
     }
 
-    public void setMovimiento3(int iPos, String sMovimiento3) {
+    void setMovimiento3(int iPos, String sMovimiento3) {
         vectorData.get(iPos).setMovimiento3(sMovimiento3);
+    }
+
+    void setPaquetes(int iPos, String sPaquetes) {
+        vectorData.get(iPos).setPaquetes(sPaquetes);
     }
 }

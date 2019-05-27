@@ -53,6 +53,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingStart="10dp"
+                android:paddingEnd="10dp"
                 android:textColor="@android:color/holo_red_dark"
                 android:visibility="gone" />
 
@@ -61,6 +62,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingStart="10dp"
+                android:paddingEnd="10dp"
                 android:textColor="@android:color/holo_green_dark"
                 android:visibility="gone" />
 
@@ -69,6 +71,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingStart="10dp"
+                android:paddingEnd="10dp"
                 android:textColor="@android:color/holo_blue_light"
                 android:visibility="gone" />
 
@@ -77,6 +80,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingStart="10dp"
+                android:paddingEnd="10dp"
                 android:textColor="@android:color/holo_orange_light"
                 android:visibility="gone" />
         </LinearLayout>
@@ -113,6 +117,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingStart="10dp"
+            android:paddingEnd="10dp"
             android:textColor="@android:color/holo_red_light" />
 
         <TextView
@@ -120,6 +125,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingStart="10dp"
+            android:paddingEnd="10dp"
             android:textColor="@android:color/holo_purple" />
 
         <TextView
@@ -127,6 +133,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingStart="10dp"
+            android:paddingEnd="10dp"
             android:textColor="@android:color/holo_orange_dark" />
+
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/textPaquetes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@android:color/holo_green_dark" />
 </LinearLayout>

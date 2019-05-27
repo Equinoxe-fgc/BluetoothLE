@@ -73,6 +73,7 @@ public class ServiceDatos extends Service {
     final static int TEMPERATURA  = 6;
     final static int LOCALIZACION_LAT  = 7;
     final static int LOCALIZACION_LONG = 8;
+    final static int PAQUETES = 9;
     public final static int ERROR = 20;
     public final static int MSG = 30;
 
@@ -80,9 +81,9 @@ public class ServiceDatos extends Service {
 
     public static final int CHANNEL_ID = 128;
 
-    String sCadenaGiroscopo[];
-    String sCadenaMagnetometro[];
-    String sCadenaAcelerometro[];
+    String[] sCadenaGiroscopo;
+    String[] sCadenaMagnetometro;
+    String[] sCadenaAcelerometro;
 
     private long lMensajesParaEnvio;
     private long lMensajesPorSegundo;
@@ -97,11 +98,11 @@ public class ServiceDatos extends Service {
     private int iPeriodo;
     private long lTiempoRefrescoDatos;
 
-    byte barometro[] = new byte[4];
+    byte []barometro = new byte[4];
     long valorBarometro, valorTemperatura;
     float fValorBarometro, fValorTemperatura;
 
-    byte luz[] = new byte[2];
+    byte []luz = new byte[2];
     float fValorLuz;
 
     long valorGiroX, valorGiroY, valorGiroZ;
@@ -111,7 +112,7 @@ public class ServiceDatos extends Service {
     long valorMagX, valorMagY, valorMagZ;
     float fValorMagX, fValorMagY, fValorMagZ;
 
-    byte humedad[] = new byte[4];
+    byte []humedad = new byte[4];
     long valorHumedad;
     float fValorHumedad;
 
@@ -124,23 +125,23 @@ public class ServiceDatos extends Service {
     boolean bNetConnected;
     EnvioDatosSocket envioAsync;
 
-    BluetoothGatt btGatt[];
-    private boolean bSensores[][];
-    private boolean bActivacion[][];
-    private boolean bConfigPeriodo[][];
+    BluetoothGatt[] btGatt;
+    private boolean[][] bSensores;
+    private boolean[][] bActivacion;
+    private boolean[][] bConfigPeriodo;
 
-    long lDatosRecibidos[];
-    long lDatosPerdidos[];
-    byte iSecuencia[];
-    boolean bPrimerDato[];
-    long lDatosRecibidosAnteriores[];
+    long[] lDatosRecibidos;
+    long[] lDatosPerdidos;
+    byte[] iSecuencia;
+    boolean[] bPrimerDato;
+    long[] lDatosRecibidosAnteriores;
 
-    byte movimiento[][];
+    byte[][] movimiento;
     boolean bSensing;
     DecimalFormat df;
 
     private boolean bHumedad, bBarometro, bLuz, bTemperatura, bAcelerometro, bGiroscopo, bMagnetometro;
-    private String sAddresses[] = new String[MAX_SENSOR_NUMBER];
+    private String[] sAddresses = new String[MAX_SENSOR_NUMBER];
     boolean bSendServer;
 
     boolean bTime;
@@ -169,7 +170,7 @@ public class ServiceDatos extends Service {
 
     // Handler that receives messages from the thread
     private final class ServiceHandler extends Handler {
-        public ServiceHandler(Looper looper) {
+        ServiceHandler(Looper looper) {
             super(looper);
         }
         @Override
@@ -221,8 +222,13 @@ public class ServiceDatos extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"MyApp::MyWakelockTag");
-        wakeLock.acquire();
+        try {
+            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"MyApp::MyWakelockTag");
+            wakeLock.acquire();
+        } catch (NullPointerException e) {
+            Log.e("NullPointerException", "ServiceDatos - onStartCommand");
+        }
+
 
         createNotificationChannel();
 
@@ -436,6 +442,7 @@ public class ServiceDatos extends Service {
             }
         }
         catch (Exception localException) {
+            Log.e("Exception", "ServiceDatos - refreshDeviceCache");
         }
         return false;
     }
@@ -498,7 +505,9 @@ public class ServiceDatos extends Service {
         publishSensorValues(0, MSG, sMsg);
         try {
             fLog.write(sMsg.getBytes());
-        } catch (IOException e) {}
+        } catch (IOException e) {
+            Log.e("IOException", "ServiceDatos - enviarMensaje");
+        }
     }
 
     private void ultimaLocalizacion() {
@@ -549,7 +558,9 @@ public class ServiceDatos extends Service {
             try {
                 publishSensorValues(LOCALIZACION_LAT, 0, Double.toString(mejorLocaliz.getLatitude()));
                 publishSensorValues(LOCALIZACION_LONG, 0, Double.toString(mejorLocaliz.getLongitude()));
-            } catch (Exception e) {}
+            } catch (Exception e) {
+                Log.e("Exception", "ServiceDatos - onLocationChanged");
+            }
         }
 
         public void onProviderDisabled(String provider) {
@@ -568,13 +579,17 @@ public class ServiceDatos extends Service {
     private void getBatteryInfo() {
         IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         Intent batteryStatus = registerReceiver(null, ifilter);
-        batInfo.setBatteryLevel(batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1));
-        batInfo.setVoltaje(batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1));
-        batInfo.setTemperature(batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1));
+        try {
+            batInfo.setBatteryLevel(batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1));
+            batInfo.setVoltaje(batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1));
+            batInfo.setTemperature(batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1));
 
-        BatteryManager mBatteryManager = (BatteryManager)this.getSystemService(Context.BATTERY_SERVICE);
-        batInfo.setCurrentAverage(mBatteryManager.getLongProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_AVERAGE));
-        batInfo.setCurrentNow(mBatteryManager.getLongProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW));
+            BatteryManager mBatteryManager = (BatteryManager) this.getSystemService(Context.BATTERY_SERVICE);
+            batInfo.setCurrentAverage(mBatteryManager.getLongProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_AVERAGE));
+            batInfo.setCurrentNow(mBatteryManager.getLongProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW));
+        } catch (NullPointerException e) {
+            Log.e("NullPointerException", "ServiceDatos - getBatteryInfo");
+        }
     }
 
     public void grabarMedidas() {
@@ -611,7 +626,9 @@ public class ServiceDatos extends Service {
         String sCadena = sdf.format(new Date()) + " Cerrando conexiones\n";
         try {
             fLog.write(sCadena.getBytes());
-        } catch (IOException e) {}
+        } catch (IOException e) {
+            Log.e("IOException", "ServiceDatos - cerrarConexiones");
+        }
 
         grabarMedidas();
 
@@ -756,7 +773,12 @@ public class ServiceDatos extends Service {
 
                 lDatosRecibidos[iDevice]++;
 
-                procesaMovimiento(movimiento[iDevice], iDevice, ((lDatosRecibidos[iDevice] + lMensajesPorSegundo) % lMensajesParaEnvio) == 0);
+                boolean bDatosParaEnvio = ((lDatosRecibidos[iDevice] + lMensajesPorSegundo) % lMensajesParaEnvio) == 0;
+                procesaMovimiento(movimiento[iDevice], iDevice, bDatosParaEnvio);
+                if (bDatosParaEnvio) {
+                    String sCadena = "   Recibidos: " + lDatosRecibidos[iDevice] + " - Perdidos: " + lDatosPerdidos[iDevice];
+                    publishSensorValues(PAQUETES, iDevice, sCadena);
+                }
 
                 if (bPrimerDato[iDevice]) {
                     bPrimerDato[iDevice] = false;
@@ -971,7 +993,7 @@ public class ServiceDatos extends Service {
         return first;
     }
 
-    private void procesaMovimiento(byte movimiento[], int iDevice, boolean bEnviarDatos) {
+    private void procesaMovimiento(byte[] movimiento, int iDevice, boolean bEnviarDatos) {
         long aux;
 
         // Giróscopo
@@ -1084,9 +1106,9 @@ public class ServiceDatos extends Service {
         valorMagZ |= aux;
         fValorMagZ = (float) valorMagZ;
 
-        sCadenaMagnetometro[iDevice] =  "M -> X: " + Float.toString(fValorMagX) + " " + getString(R.string.MagnetometerUnit) + " ";
-        sCadenaMagnetometro[iDevice] += "   Y: " + Float.toString(fValorMagY) + " " + getString(R.string.MagnetometerUnit) + " ";
-        sCadenaMagnetometro[iDevice] += "   Z: " + Float.toString(fValorMagZ) + " " + getString(R.string.MagnetometerUnit);
+        sCadenaMagnetometro[iDevice] =  "M -> X: " + fValorMagX + " " + getString(R.string.MagnetometerUnit) + " ";
+        sCadenaMagnetometro[iDevice] += "   Y: " + fValorMagY + " " + getString(R.string.MagnetometerUnit) + " ";
+        sCadenaMagnetometro[iDevice] += "   Z: " + fValorMagZ + " " + getString(R.string.MagnetometerUnit);
 
         //publishSensorValues(MAGNETOMETRO, iDevice,sCadena);
         if (bEnviarDatos) {

@@ -13,7 +13,7 @@ public class MiAdaptadorDatos extends RecyclerView.Adapter<MiAdaptadorDatos.View
     private LayoutInflater inflador;
     private BluetoothDataList lista;
 
-    public MiAdaptadorDatos(Context context, BluetoothDataList lista) {
+    MiAdaptadorDatos(Context context, BluetoothDataList lista) {
         this.lista = lista;
         inflador = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
     }
@@ -37,6 +37,7 @@ public class MiAdaptadorDatos extends RecyclerView.Adapter<MiAdaptadorDatos.View
         holder.textViewMovimiento1.setText(info.getMovimiento1());
         holder.textViewMovimiento2.setText(info.getMovimiento2());
         holder.textViewMovimiento3.setText(info.getMovimiento3());
+        holder.textViewPaquetes.setText(info.getPaquetes());
     }
 
     @Override
@@ -44,17 +45,19 @@ public class MiAdaptadorDatos extends RecyclerView.Adapter<MiAdaptadorDatos.View
         return lista.getSize();
     }
 
-    public class ViewHolderDatos extends RecyclerView.ViewHolder {
-        public TextView textViewAddress;
+    class ViewHolderDatos extends RecyclerView.ViewHolder {
+        TextView textViewAddress;
         /*public TextView textViewTemperatura;
         public TextView textViewHumedad;
         public TextView textViewBarometro;
         public TextView textViewLuz;*/
-        public TextView textViewMovimiento1;
-        public TextView textViewMovimiento2;
-        public TextView textViewMovimiento3;
+        TextView textViewMovimiento1;
+        TextView textViewMovimiento2;
+        TextView textViewMovimiento3;
 
-        public ViewHolderDatos(View itemView) {
+        TextView textViewPaquetes;
+
+        ViewHolderDatos(View itemView) {
             super(itemView);
             textViewAddress = itemView.findViewById(R.id.textViewAddress);
             /*textViewTemperatura = itemView.findViewById(R.id.textViewTemperatura);
@@ -64,6 +67,8 @@ public class MiAdaptadorDatos extends RecyclerView.Adapter<MiAdaptadorDatos.View
             textViewMovimiento1 = itemView.findViewById(R.id.textViewMovimiento1);
             textViewMovimiento2 = itemView.findViewById(R.id.textViewMovimiento2);
             textViewMovimiento3 = itemView.findViewById(R.id.textViewMovimiento3);
+
+            textViewPaquetes = itemView.findViewById(R.id.textPaquetes);
         }
     }
 }

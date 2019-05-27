@@ -65,7 +65,7 @@ public class Datos extends AppCompatActivity {
     int iNumDevices;
     int iPeriodo;
 
-    String sAddresses[];
+    String[] sAddresses;
 
     boolean bServicioParado;
     Intent intentChkServicio = null;
@@ -74,8 +74,8 @@ public class Datos extends AppCompatActivity {
 
 
     protected WebView webView;
-    protected Vector links;
-    protected Vector linksInicial;
+    protected Vector<String> links;
+    protected Vector<String> linksInicial;
     protected String sLinks = "";
     protected boolean bTerminado;
     Random r;
@@ -140,6 +140,7 @@ public class Datos extends AppCompatActivity {
         txtLatitud = findViewById(R.id.textViewLatitud);
         txtLongitud = findViewById(R.id.textViewLongitud);
         txtMensajes = findViewById(R.id.textViewMensajes);
+        webView = findViewById(R.id.webView);
 
         listaDatos = new BluetoothDataList(iNumDevices, sAddresses);
 
@@ -157,9 +158,11 @@ public class Datos extends AppCompatActivity {
             txtLatitud.setVisibility(View.GONE);
         }
 
+
         if (bWebNavigation) {
+            webView.setVisibility(View.VISIBLE);
             bTemperatura = false;
-            linksInicial = new Vector();
+            linksInicial = new Vector<>();
             linksInicial.addElement("http://www.wikipedia.com");
             linksInicial.addElement("https://tapeline.info/v2/index.php?");
             linksInicial.addElement("https://www.c64-wiki.com/");
@@ -167,16 +170,14 @@ public class Datos extends AppCompatActivity {
             linksInicial.addElement("http://www.cpcwiki.eu/index.php/Main_Page");
             linksInicial.addElement("https://www.nvidia.com/es-es/");
 
-            links = new Vector();
+            links = new Vector<>();
             r = new Random();
-
-            webView = findViewById(R.id.webView);
 
             webView.getSettings().setJavaScriptEnabled(true);
             webView.addJavascriptInterface(new MyJavaScriptInterface(this), "HtmlViewer");
 
             random = r.nextInt(linksInicial.size());
-            String sURL = (String) linksInicial.elementAt(random);
+            String sURL = linksInicial.elementAt(random);
             webView.loadUrl(sURL);
             bTerminado = false;
 
@@ -186,7 +187,10 @@ public class Datos extends AppCompatActivity {
                     webView.loadUrl("javascript:window.HtmlViewer.showHTML" +
                             "('<html>'+document.getElementsByTagName('html')[0].innerHTML+'</html>');");
                 }
-            });}
+            });
+        } else {
+            webView.setVisibility(View.GONE);
+        }
 
 
         bSensing = false;
@@ -226,15 +230,15 @@ public class Datos extends AppCompatActivity {
 
                         if (links.isEmpty()) {
                             random = r.nextInt(linksInicial.size());
-                            sURL = (String) linksInicial.elementAt(random);
+                            sURL = linksInicial.elementAt(random);
                         } else {
                             random = r.nextInt(100);
                             if (random < 20) {
                                 random = r.nextInt(linksInicial.size());
-                                sURL = (String) linksInicial.elementAt(random);
+                                sURL = linksInicial.elementAt(random);
                             } else {
                                 random = r.nextInt(links.size());
-                                sURL = (String) links.elementAt(random);
+                                sURL = links.elementAt(random);
                             }
                         }
                         webView.loadUrl(sURL);
@@ -329,6 +333,9 @@ public class Datos extends AppCompatActivity {
                             //case IntentServiceDatos.LOCALIZACION_LONG:
                             case ServiceDatos.LOCALIZACION_LONG:
                                 txtLongitud.setText("Long: " + sCadena);
+                                break;
+                            case ServiceDatos.PAQUETES:
+                                listaDatos.setPaquetes(iDevice, sCadena);
                                 break;
                         }
                 }
