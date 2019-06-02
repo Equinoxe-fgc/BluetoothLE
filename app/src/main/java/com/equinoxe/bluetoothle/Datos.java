@@ -344,6 +344,12 @@ public class Datos extends AppCompatActivity {
     };
 
 
+    @Override
+    public void onBackPressed() {
+        btnPararClick(null);
+
+        super.onBackPressed();
+    }
 
     public  void btnPararClick(View v) {
         stopService(intentChkServicio);
