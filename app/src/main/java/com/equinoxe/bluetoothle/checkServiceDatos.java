@@ -41,7 +41,9 @@ public class checkServiceDatos extends Service {
     int iPeriodo;
     long lTiempoRefrescoDatos;
 
-    String sAddresses[] = new String[8];
+    long iMaxInterval, iMinInterval,  iLatency, iTimeout, iPeriodoMaxRes;
+
+    String[] sAddresses = new String[8];
 
 
     public checkServiceDatos() {
@@ -75,6 +77,11 @@ public class checkServiceDatos extends Service {
         intentServicio.putExtra("Location", bLocation);
         intentServicio.putExtra("SendServer", bSendServer);
 
+        intentServicio.putExtra("MaxInterval", iMaxInterval);
+        intentServicio.putExtra("MinInterval", iMinInterval);
+        intentServicio.putExtra("Latency", iLatency);
+        intentServicio.putExtra("Timeout", iTimeout);
+        intentServicio.putExtra("PeriodoMaxRes", iPeriodoMaxRes);
         //intentServicio.putExtra("bTime", bTime);
         //intentServicio.putExtra("Time", lTime);
 
@@ -101,6 +108,12 @@ public class checkServiceDatos extends Service {
 
         bLocation = intent.getBooleanExtra("Location", false);
         bSendServer = intent.getBooleanExtra("SendServer", false);
+
+        iMaxInterval = intent.getLongExtra("MaxInterval", 0);
+        iMinInterval = intent.getLongExtra("MinInterval", 0);
+        iLatency = intent.getLongExtra("Latency", 0);
+        iTimeout = intent.getLongExtra("Timeout", 0);
+        iPeriodoMaxRes = intent.getLongExtra("PeriodoMaxRes", 0);
 
         //bTime = intent.getBooleanExtra("bTime", false);
         //lTime = intent.getLongExtra("Time", 0);

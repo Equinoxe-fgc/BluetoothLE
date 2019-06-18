@@ -26,6 +26,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -43,14 +44,14 @@ public class Conexion extends AppCompatActivity {
     private final Handler handler = new Handler();
 
     int iNumDevices;
-    String sAddresses[] = new String[8];
+    String[] sAddresses = new String[8];
 
     private TextView txtPeriodo;
     private Button btnStart;
     private CheckBox chkGPS;
     private CheckBox chkSendServer;
     private CheckBox chkTiempo;
-    private TextView txtTiempo;
+    private TextView txtTiempo, txtMaxInterval, txtMinInterval, txtLatency, txtTimeout, txtPeriodoMaxRes;
     private CheckBox chkWebNavigation;
     private RecyclerView recyclerViewSensores;
     private MiAdaptadorSensores adaptadorSensores;
@@ -71,6 +72,12 @@ public class Conexion extends AppCompatActivity {
         chkTiempo = findViewById(R.id.chkTiempo);
         txtTiempo = findViewById(R.id.txtTiempo);
         chkWebNavigation = findViewById(R.id.chkWebNavigation);
+
+        txtMaxInterval = findViewById(R.id.txtMAX_INTERVAL);
+        txtMinInterval = findViewById(R.id.txtMIN_INTERVAL);
+        txtLatency = findViewById(R.id.txtLatency);
+        txtTimeout = findViewById(R.id.txtTimeout);
+        txtPeriodoMaxRes = findViewById(R.id.txtPeriodoMaxRes);
 
         listaServicesInfo = new BluetoothServiceInfoList();
 
@@ -194,6 +201,49 @@ public class Conexion extends AppCompatActivity {
     public void onStartSingle(View v) {
         //btGatt.disconnect();
         //btGatt.close();
+        if (txtMaxInterval.length() == 0)
+            txtMaxInterval.setText("0");
+        int iMaxInterval = Integer.valueOf(txtMaxInterval.getText().toString());
+        if ((iMaxInterval != 0 && iMaxInterval < 0x06) || iMaxInterval > 0xC80) {
+            Toast.makeText(this, getString(R.string.ERROR_MAX_INTERVAL), Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        if (txtMinInterval.length() == 0)
+            txtMinInterval.setText("0");
+        int iMinInterval = Integer.valueOf(txtMinInterval.getText().toString());
+        if ((iMinInterval != 0 && iMinInterval < 0x06) || iMinInterval > 0xC80) {
+            Toast.makeText(this, getString(R.string.ERROR_MIN_INTERVAL), Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        if (iMaxInterval < iMinInterval) {
+            Toast.makeText(this, getString(R.string.ERROR_MAX_MIN_INTERVAL), Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (txtLatency.length() == 0)
+            txtLatency.setText("0");
+        int iLatency = Integer.valueOf(txtLatency.getText().toString());
+        if (iLatency > 0x3E8) {
+            Toast.makeText(this, getString(R.string.ERROR_LATENCY), Toast.LENGTH_LONG).show();
+            return;
+        }
+
+
+        if (txtTimeout.length() == 0)
+            txtTimeout.setText("0");
+        int iTimeout = Integer.valueOf(txtTimeout.getText().toString());
+        if ((iTimeout != 0 && iTimeout < 10) || iTimeout > 0xC80) {
+            Toast.makeText(this, getString(R.string.ERROR_TIMEOUT), Toast.LENGTH_LONG).show();
+            return;
+        }
+
+
+        if (txtPeriodoMaxRes.length() == 0)
+            txtPeriodoMaxRes.setText("0");
+        int iPeriodoMaxRes = Integer.valueOf(txtPeriodoMaxRes.getText().toString());
+
 
         Intent intent = new Intent(this, Datos.class);
         intent.putExtra("NumDevices", iNumDevices);
@@ -229,6 +279,13 @@ public class Conexion extends AppCompatActivity {
             txtTiempo.setText("0");
         long lTime = 1000*Integer.valueOf(txtTiempo.getText().toString());
         intent.putExtra("Time", lTime);
+
+
+        intent.putExtra("MaxInterval", iMaxInterval);
+        intent.putExtra("MinInterval", iMinInterval);
+        intent.putExtra("Latency", iLatency);
+        intent.putExtra("Timeout", iTimeout);
+        intent.putExtra("PeriodoMaxRes", iPeriodoMaxRes);
 
         startActivity(intent);
     }

@@ -62,6 +62,8 @@ public class Datos extends AppCompatActivity {
     boolean bTime;
     long lTime;
 
+    int iMaxInterval, iMinInterval,  iLatency, iTimeout, iPeriodoMaxRes;
+
     int iNumDevices;
     int iPeriodo;
 
@@ -123,6 +125,12 @@ public class Datos extends AppCompatActivity {
 
         bTime = extras.getBoolean("bTime");
         lTime = extras.getLong("Time");
+
+        iMaxInterval = extras.getInt("MaxInterval", 0);
+        iMinInterval = extras.getInt("MinInterval", 0);
+        iLatency = extras.getInt("Latency", 0);
+        iTimeout = extras.getInt("Timeout", 0);
+        iPeriodoMaxRes = extras.getInt("PeriodoMaxRes", 0);
 
         if (bSendServer || bWebNavigation) {
             Window window = getWindow();
@@ -270,6 +278,12 @@ public class Datos extends AppCompatActivity {
         intentChkServicio.putExtra("Magnetometro", bMagnetometro);
         intentChkServicio.putExtra("Location", bLocation);
         intentChkServicio.putExtra("SendServer", bSendServer);
+
+        intentChkServicio.putExtra("MaxInterval", iMaxInterval);
+        intentChkServicio.putExtra("MinInterval", iMinInterval);
+        intentChkServicio.putExtra("Latency", iLatency);
+        intentChkServicio.putExtra("Timeout", iTimeout);
+        intentChkServicio.putExtra("PeriodoMaxRes", iPeriodoMaxRes);
         //intentChkServicio.putExtra("bTime", bTime);
         //intentChkServicio.putExtra("Time", lTime);
 

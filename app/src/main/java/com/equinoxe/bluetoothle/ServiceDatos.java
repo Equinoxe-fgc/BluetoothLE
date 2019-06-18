@@ -51,6 +51,8 @@ import java.util.TimerTask;
 import java.util.UUID;
 
 import static android.bluetooth.BluetoothGattCharacteristic.FORMAT_SINT8;
+import static com.equinoxe.bluetoothle.UUIDs.UUID_PARAM_CON;
+import static com.equinoxe.bluetoothle.UUIDs.UUID_PERIODO;
 
 public class ServiceDatos extends Service {
     final static long lTiempoGPS = 10 * 1000;                   // Tiempo de toma de muestras de GPS (en ms)
@@ -135,6 +137,8 @@ public class ServiceDatos extends Service {
     byte[] iSecuencia;
     boolean[] bPrimerDato;
     long[] lDatosRecibidosAnteriores;
+    boolean[] bConfigTiempos;
+    boolean[] bConfigPeriodoMaxRes;
 
     byte[][] movimiento;
     boolean bSensing;
@@ -143,6 +147,8 @@ public class ServiceDatos extends Service {
     private boolean bHumedad, bBarometro, bLuz, bTemperatura, bAcelerometro, bGiroscopo, bMagnetometro;
     private String[] sAddresses = new String[MAX_SENSOR_NUMBER];
     boolean bSendServer;
+
+    long iMaxInterval, iMinInterval,  iLatency, iTimeout, iPeriodoMaxRes;
 
     boolean bTime;
     long lTime;
@@ -258,6 +264,12 @@ public class ServiceDatos extends Service {
         bLocation = intent.getBooleanExtra("Location", false);
         bSendServer = intent.getBooleanExtra("SendServer", false);
 
+        iMaxInterval = intent.getLongExtra("MaxInterval", 0);
+        iMinInterval = intent.getLongExtra("MinInterval", 0);
+        iLatency = intent.getLongExtra("Latency", 0);
+        iTimeout = intent.getLongExtra("Timeout", 0);
+        iPeriodoMaxRes = intent.getLongExtra("PeriodoMaxRes", 0);
+
         //bTime = intent.getBooleanExtra("bTime", false);
         //lTime = intent.getLongExtra("Time", 0);
 
@@ -272,6 +284,9 @@ public class ServiceDatos extends Service {
         bActivacion = new boolean[iNumDevices][4];
         bConfigPeriodo = new boolean[iNumDevices][4];
 
+        bConfigTiempos = new boolean[iNumDevices];
+        bConfigPeriodoMaxRes = new boolean[iNumDevices];
+
         // Se inicializan todos los sensores porque se guarda la estadística de todos aunque no se usen
         lDatosRecibidos = new long[MAX_SENSOR_NUMBER];
         lDatosPerdidos = new long[MAX_SENSOR_NUMBER];
@@ -285,6 +300,9 @@ public class ServiceDatos extends Service {
                 bSensores[i][1] = bActivacion[i][1] = bConfigPeriodo[i][1] = bHumedad;
                 bSensores[i][2] = bActivacion[i][2] = bConfigPeriodo[i][2] = bBarometro || bTemperatura;
                 bSensores[i][3] = bActivacion[i][3] = bConfigPeriodo[i][3] = bLuz;
+
+                bConfigTiempos[i] = (iMaxInterval != 0 || iMinInterval != 0 || iLatency != 0 || iTimeout != 0);
+                bConfigPeriodoMaxRes [i] = (iPeriodoMaxRes != 0);
 
                 lDatosRecibidosAnteriores[i] = 0;
                 iSecuencia[i] = 0;
@@ -738,7 +756,14 @@ public class ServiceDatos extends Service {
 
                             configPeriodo(gatt, firstPeriodo);
                         } else {
-                            bSensing = true;
+                            if (bConfigTiempos[iDevice]) {
+                                bConfigTiempos[iDevice] = false;
+                                configTiempos(gatt, iDevice);
+                            } else if (bConfigPeriodoMaxRes[iDevice]) {
+                                bConfigPeriodoMaxRes[iDevice] = false;
+                                configPeriodoMaxRes(gatt, iDevice);
+                            } else
+                                bSensing = true;
                             //adaptadorDatos.notifyDataSetChanged();
                         }
                     }
@@ -821,6 +846,44 @@ public class ServiceDatos extends Service {
 
             }
         };
+    }
+
+    private void configTiempos(BluetoothGatt btGatt, int iDevice) {
+        String sAddress = btGatt.getDevice().getAddress();
+        String sCadena = sdf.format(new Date()) + " Config Tiempos " + sAddress.substring(sAddress.length()-2) + "\n";
+        publishSensorValues(0, MSG, sCadena);
+
+        BluetoothGattCharacteristic characteristic;
+        characteristic = btGatt.getService(UUID_PARAM_CON).getCharacteristic(UUID_PARAM_CON);
+        byte[] highByte = new byte[4];
+        byte[] lowByte = new byte[4];
+
+        highByte[0] = (byte) ((iMaxInterval & 0x0000FF00) >> 8);
+        lowByte[0] = (byte) (iMaxInterval & 0x000000FF);
+
+        highByte[1] = (byte) ((iMinInterval & 0x0000FF00) >> 8);
+        lowByte[1] = (byte) (iMinInterval & 0x000000FF);
+
+        highByte[2] = (byte) ((iLatency & 0x0000FF00) >> 8);
+        lowByte[2] = (byte) (iLatency & 0x000000FF);
+
+        highByte[3] = (byte) ((iTimeout & 0x0000FF00) >> 8);
+        lowByte[3] = (byte) (iTimeout & 0x000000FF);
+
+        characteristic.setValue(new byte[]{lowByte[0], highByte[0], lowByte[1], highByte[1], lowByte[2], highByte[2], lowByte[3], highByte[3]});
+    }
+
+    private void configPeriodoMaxRes(BluetoothGatt btGatt, int iDevice) {
+        String sAddress = btGatt.getDevice().getAddress();
+        String sCadena = sdf.format(new Date()) + " Config Periodo Max Res " + sAddress.substring(sAddress.length()-2) + "\n";
+        publishSensorValues(0, MSG, sCadena);
+
+        BluetoothGattCharacteristic characteristic;
+        characteristic = btGatt.getService(UUID_PERIODO).getCharacteristic(UUID_PERIODO);
+
+        byte highByte = (byte) ((iPeriodoMaxRes & 0x0000FF00) >> 8);
+        byte lowByte= (byte) (iPeriodoMaxRes & 0x000000FF);
+        characteristic.setValue(new byte[]{lowByte, highByte});
     }
 
     private void configPeriodo(BluetoothGatt btGatt, int firstPeriodo) {
