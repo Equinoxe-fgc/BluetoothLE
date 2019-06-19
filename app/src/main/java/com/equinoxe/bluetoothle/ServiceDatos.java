@@ -51,6 +51,7 @@ import java.util.TimerTask;
 import java.util.UUID;
 
 import static android.bluetooth.BluetoothGattCharacteristic.FORMAT_SINT8;
+import static com.equinoxe.bluetoothle.UUIDs.UUID_MOV_SERV;
 import static com.equinoxe.bluetoothle.UUIDs.UUID_PARAM_CON;
 import static com.equinoxe.bluetoothle.UUIDs.UUID_PERIODO;
 
@@ -854,7 +855,7 @@ public class ServiceDatos extends Service {
         publishSensorValues(0, MSG, sCadena);
 
         BluetoothGattCharacteristic characteristic;
-        characteristic = btGatt.getService(UUID_PARAM_CON).getCharacteristic(UUID_PARAM_CON);
+        characteristic = btGatt.getService(UUID_MOV_SERV).getCharacteristic(UUID_PARAM_CON);
         byte[] highByte = new byte[4];
         byte[] lowByte = new byte[4];
 
@@ -870,7 +871,8 @@ public class ServiceDatos extends Service {
         highByte[3] = (byte) ((iTimeout & 0x0000FF00) >> 8);
         lowByte[3] = (byte) (iTimeout & 0x000000FF);
 
-        characteristic.setValue(new byte[]{lowByte[0], highByte[0], lowByte[1], highByte[1], lowByte[2], highByte[2], lowByte[3], highByte[3]});
+        byte [] valor = new byte[]{lowByte[0], highByte[0], lowByte[1], highByte[1], lowByte[2], highByte[2], lowByte[3], highByte[3]};
+        characteristic.setValue(valor);
     }
 
     private void configPeriodoMaxRes(BluetoothGatt btGatt, int iDevice) {
@@ -879,11 +881,13 @@ public class ServiceDatos extends Service {
         publishSensorValues(0, MSG, sCadena);
 
         BluetoothGattCharacteristic characteristic;
-        characteristic = btGatt.getService(UUID_PERIODO).getCharacteristic(UUID_PERIODO);
+        characteristic = btGatt.getService(UUID_MOV_SERV).getCharacteristic(UUID_PERIODO);
 
         byte highByte = (byte) ((iPeriodoMaxRes & 0x0000FF00) >> 8);
         byte lowByte= (byte) (iPeriodoMaxRes & 0x000000FF);
-        characteristic.setValue(new byte[]{lowByte, highByte});
+
+        byte [] valor = new byte[]{lowByte, highByte};
+        characteristic.setValue(valor);
     }
 
     private void configPeriodo(BluetoothGatt btGatt, int firstPeriodo) {
@@ -987,11 +991,11 @@ public class ServiceDatos extends Service {
     }
 
     private UUID getServerUUID(int iSensor) {
-        UUID UUIDServer = UUIDs.UUID_MOV_SERV;
+        UUID UUIDServer = UUID_MOV_SERV;
 
         switch (iSensor) {
             case 0:
-                UUIDServer = UUIDs.UUID_MOV_SERV;
+                UUIDServer = UUID_MOV_SERV;
                 break;
             case 1:
                 UUIDServer = UUIDs.UUID_HUM_SERV;

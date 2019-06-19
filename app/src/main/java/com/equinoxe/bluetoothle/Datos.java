@@ -279,11 +279,11 @@ public class Datos extends AppCompatActivity {
         intentChkServicio.putExtra("Location", bLocation);
         intentChkServicio.putExtra("SendServer", bSendServer);
 
-        intentChkServicio.putExtra("MaxInterval", iMaxInterval);
-        intentChkServicio.putExtra("MinInterval", iMinInterval);
-        intentChkServicio.putExtra("Latency", iLatency);
-        intentChkServicio.putExtra("Timeout", iTimeout);
-        intentChkServicio.putExtra("PeriodoMaxRes", iPeriodoMaxRes);
+        intentChkServicio.putExtra("MaxInterval", (long) iMaxInterval);
+        intentChkServicio.putExtra("MinInterval", (long) iMinInterval);
+        intentChkServicio.putExtra("Latency", (long) iLatency);
+        intentChkServicio.putExtra("Timeout", (long) iTimeout);
+        intentChkServicio.putExtra("PeriodoMaxRes", (long) iPeriodoMaxRes);
         //intentChkServicio.putExtra("bTime", bTime);
         //intentChkServicio.putExtra("Time", lTime);
 

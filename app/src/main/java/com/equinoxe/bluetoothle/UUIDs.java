@@ -33,8 +33,8 @@ public class UUIDs {
             UUID_MOV_CONF = fromString("f000aa82-0451-4000-b000-000000000000"), // 0: disable, bit 0: enable x, bit 1: enable y, bit 2: enable z
             UUID_MOV_PERI = fromString("f000aa83-0451-4000-b000-000000000000"), // Period in tens of milliseconds
 
-            UUID_PARAM_CON = fromString("f000aa84-0451-b000-000000000000"),
-            UUID_PERIODO = fromString("f000aa85-0451-b000-000000000000");
+            UUID_PARAM_CON = fromString("f000aa84-0451-4000-b000-000000000000"),
+            UUID_PERIODO   = fromString("f000aa85-0451-4000-b000-000000000000");
 
             /*UUID_TST_SERV = fromString("f000aa64-0451-4000-b000-000000000000"),
             UUID_TST_DATA = fromString("f000aa65-0451-4000-b000-000000000000"), // Test result

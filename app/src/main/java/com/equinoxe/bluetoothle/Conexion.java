@@ -201,7 +201,7 @@ public class Conexion extends AppCompatActivity {
     public void onStartSingle(View v) {
         //btGatt.disconnect();
         //btGatt.close();
-        if (txtMaxInterval.length() == 0)
+        if (txtMaxInterval.getText().toString().length() == 0)
             txtMaxInterval.setText("0");
         int iMaxInterval = Integer.valueOf(txtMaxInterval.getText().toString());
         if ((iMaxInterval != 0 && iMaxInterval < 0x06) || iMaxInterval > 0xC80) {
@@ -209,7 +209,7 @@ public class Conexion extends AppCompatActivity {
             return;
         }
 
-        if (txtMinInterval.length() == 0)
+        if (txtMinInterval.getText().toString().length() == 0)
             txtMinInterval.setText("0");
         int iMinInterval = Integer.valueOf(txtMinInterval.getText().toString());
         if ((iMinInterval != 0 && iMinInterval < 0x06) || iMinInterval > 0xC80) {
@@ -222,7 +222,7 @@ public class Conexion extends AppCompatActivity {
             return;
         }
 
-        if (txtLatency.length() == 0)
+        if (txtLatency.getText().toString().length() == 0)
             txtLatency.setText("0");
         int iLatency = Integer.valueOf(txtLatency.getText().toString());
         if (iLatency > 0x3E8) {
@@ -231,7 +231,7 @@ public class Conexion extends AppCompatActivity {
         }
 
 
-        if (txtTimeout.length() == 0)
+        if (txtTimeout.getText().toString().length() == 0)
             txtTimeout.setText("0");
         int iTimeout = Integer.valueOf(txtTimeout.getText().toString());
         if ((iTimeout != 0 && iTimeout < 10) || iTimeout > 0xC80) {
@@ -240,7 +240,7 @@ public class Conexion extends AppCompatActivity {
         }
 
 
-        if (txtPeriodoMaxRes.length() == 0)
+        if (txtPeriodoMaxRes.getText().toString().length() == 0)
             txtPeriodoMaxRes.setText("0");
         int iPeriodoMaxRes = Integer.valueOf(txtPeriodoMaxRes.getText().toString());
 

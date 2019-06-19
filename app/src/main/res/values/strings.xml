@@ -39,10 +39,10 @@
     <string name="LOCATION_DISABLED">Location is disabled. Enable GPS and WiFi (or data)</string>
     <string name="LOCATION_FAILED">Location failed. Enable GPS and WiFi (or data)</string>
     <string name="EnvioAservidor">Send data to server</string>
-    <string name="CompileDate">Version: 18/06/2019</string>
+    <string name="CompileDate">Version: 19/06/2019</string>
     <string name="channel_name">CANAL_NOTIFICACION</string>
     <string name="channel_description">Channel for notifications</string>
-    <string name="Tiempo">Time (seconds)</string>
+    <string name="Tiempo">Time (s)</string>
     <string name="WebNavigation">Web Navigation</string>
     <string name="ERROR_MAX_INTERVAL">Max interval parameter out of range</string>
     <string name="ERROR_MIN_INTERVAL">Min interval parameter out of range</string>
