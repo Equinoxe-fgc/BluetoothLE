@@ -751,21 +751,21 @@ public class ServiceDatos extends Service {
 
                         activarServicio(gatt, firstActivar);
                     } else {
+                        if (bConfigTiempos[iDevice]) {
+                            bConfigTiempos[iDevice] = false;
+                            configTiempos(gatt, iDevice);
+                        } else if (bConfigPeriodoMaxRes[iDevice]) {
+                            bConfigPeriodoMaxRes[iDevice] = false;
+                            configPeriodoMaxRes(gatt, iDevice);
+                        } else
+                            bSensing = true;
+                        //adaptadorDatos.notifyDataSetChanged();
                         int firstPeriodo = firstSensorPeriodo(iDevice);
                         if (firstPeriodo < 4) {
                             bConfigPeriodo[iDevice][firstPeriodo] = false;
 
                             configPeriodo(gatt, firstPeriodo);
                         } else {
-                            if (bConfigTiempos[iDevice]) {
-                                bConfigTiempos[iDevice] = false;
-                                configTiempos(gatt, iDevice);
-                            } else if (bConfigPeriodoMaxRes[iDevice]) {
-                                bConfigPeriodoMaxRes[iDevice] = false;
-                                configPeriodoMaxRes(gatt, iDevice);
-                            } else
-                                bSensing = true;
-                            //adaptadorDatos.notifyDataSetChanged();
                         }
                     }
                 }
@@ -873,6 +873,7 @@ public class ServiceDatos extends Service {
 
         byte [] valor = new byte[]{lowByte[0], highByte[0], lowByte[1], highByte[1], lowByte[2], highByte[2], lowByte[3], highByte[3]};
         characteristic.setValue(valor);
+        btGatt.writeCharacteristic(characteristic);
     }
 
     private void configPeriodoMaxRes(BluetoothGatt btGatt, int iDevice) {
@@ -888,6 +889,7 @@ public class ServiceDatos extends Service {
 
         byte [] valor = new byte[]{lowByte, highByte};
         characteristic.setValue(valor);
+        btGatt.writeCharacteristic(characteristic);
     }
 
     private void configPeriodo(BluetoothGatt btGatt, int firstPeriodo) {
