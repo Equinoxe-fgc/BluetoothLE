@@ -58,6 +58,7 @@ import static com.equinoxe.bluetoothle.UUIDs.UUID_PERIODO;
 public class ServiceDatos extends Service {
     final static long lTiempoGPS = 10 * 1000;                   // Tiempo de toma de muestras de GPS (en ms)
     final static long lTiempoGrabacionDatos = 120 * 1000;       // Tiempo de grabación de las estadísticas (en ms)
+    final static long lTiempoGrabacionCorriente = 10;           // Tiempo de grabación del log de corriente
     final static long lTiempoComprobacionDesconexion = 5 * 1000;  // Tiempo cada cuanto se comprueba si ha habido desconexión
 
     final static long lDelayComprobacionDesconexion = 30000;
@@ -91,9 +92,11 @@ public class ServiceDatos extends Service {
     private long lMensajesParaEnvio;
     private long lMensajesPorSegundo;
 
+    boolean bLOGCurrent;
+
     SimpleDateFormat sdf;
 
-    FileOutputStream fOut;
+    FileOutputStream fOut, fOutCurrent;
     FileOutputStream fLog;
     BatteryInfoBT batInfo;
 
@@ -160,6 +163,7 @@ public class ServiceDatos extends Service {
     Timer timerComprobarDesconexion;
     Timer timerGrabarDatos;
     Timer timerGrabarGPS;
+    Timer timerGrabarCorriente;
 
     boolean bReiniciar = false;
     boolean bReinicio;
@@ -174,6 +178,9 @@ public class ServiceDatos extends Service {
     int iPuerto;
 
     WifiManager wifi;
+
+    int iMuestraCorriente;
+    float []fCorriente;
 
     // Handler that receives messages from the thread
     private final class ServiceHandler extends Handler {
@@ -217,6 +224,8 @@ public class ServiceDatos extends Service {
     public void onDestroy() {
         timerGrabarDatos.cancel();
         timerComprobarDesconexion.cancel();
+        if (bLOGCurrent)
+            timerGrabarCorriente.cancel();
         if (bSendServer)
             timerGrabarGPS.cancel();
 
@@ -235,7 +244,6 @@ public class ServiceDatos extends Service {
         } catch (NullPointerException e) {
             Log.e("NullPointerException", "ServiceDatos - onStartCommand");
         }
-
 
         createNotificationChannel();
 
@@ -265,11 +273,20 @@ public class ServiceDatos extends Service {
         bLocation = intent.getBooleanExtra("Location", false);
         bSendServer = intent.getBooleanExtra("SendServer", false);
 
+        bLOGCurrent = intent.getBooleanExtra("LOGCurrent", false);
+
+        lTime = intent.getLongExtra("Time", 0);
+
         iMaxInterval = intent.getLongExtra("MaxInterval", 0);
         iMinInterval = intent.getLongExtra("MinInterval", 0);
         iLatency = intent.getLongExtra("Latency", 0);
         iTimeout = intent.getLongExtra("Timeout", 0);
         iPeriodoMaxRes = intent.getLongExtra("PeriodoMaxRes", 0);
+
+        if (bLOGCurrent) {
+            int iTamanoMuestraCorriente = (int)(lTime / lTiempoGrabacionCorriente) + 1000;
+            fCorriente = new float[iTamanoMuestraCorriente];
+        }
 
         //bTime = intent.getBooleanExtra("bTime", false);
         //lTime = intent.getLongExtra("Time", 0);
@@ -324,6 +341,13 @@ public class ServiceDatos extends Service {
 
         df = new DecimalFormat("###.##");
         sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
+
+        if (bLOGCurrent) {
+            String sFichero = Environment.getExternalStorageDirectory() + "/" + android.os.Build.MODEL + "_" + iNumDevices + "_" + iPeriodo + "_Current.txt";
+            try {
+                fOutCurrent = new FileOutputStream(sFichero, false);
+            } catch (Exception e) {}
+        }
 
         String currentDateandTime = sdf.format(new Date());
         try {
@@ -380,6 +404,15 @@ public class ServiceDatos extends Service {
 
         batInfo = new BatteryInfoBT();
 
+        ///////////////////////////////////////////////////
+        if (bLOGCurrent) {
+            iMuestraCorriente = 0;
+            for (int i = 0; i < fCorriente.length; i++)
+                fCorriente[i] = 0.0f;
+        }
+        ///////////////////////////////////////////////////
+
+
         final TimerTask timerTaskGrabarDatos = new TimerTask() {
             public void run() {
                 grabarMedidas();
@@ -389,6 +422,18 @@ public class ServiceDatos extends Service {
 
         timerGrabarDatos = new Timer();
         timerGrabarDatos.scheduleAtFixedRate(timerTaskGrabarDatos, lTiempoGrabacionDatos, lTiempoGrabacionDatos);
+
+        final TimerTask timerTaskGrabarCorriente = new TimerTask() {
+            public void run() {
+                guardarCorriente();
+                //notiticacion();
+            }
+        };
+
+        if (bLOGCurrent) {
+            timerGrabarCorriente = new Timer();
+            timerGrabarCorriente.scheduleAtFixedRate(timerTaskGrabarCorriente, lTiempoGrabacionCorriente, lTiempoGrabacionCorriente);
+        }
 
         final TimerTask timerTaskComprobarDesconexion = new TimerTask() {
             public void run() {
@@ -611,6 +656,17 @@ public class ServiceDatos extends Service {
         }
     }
 
+    public void guardarCorriente() {
+        getBatteryInfo();
+
+        try {
+            fCorriente[iMuestraCorriente] = batInfo.getCurrentNow();
+            iMuestraCorriente++;
+        } catch (Exception e) {
+            Log.e("Fichero de resultados", e.getMessage(), e);
+        }
+    }
+
     public void grabarMedidas() {
         getBatteryInfo();
 
@@ -651,6 +707,13 @@ public class ServiceDatos extends Service {
 
         grabarMedidas();
 
+        try {
+            for (int i = 0; i < fCorriente.length; i++) {
+                sCadena = "" + fCorriente[i] + "\n";
+                fOutCurrent.write(sCadena.getBytes());
+            }
+        } catch (Exception e) {}
+
         //envioAsync.cancel(true);
 
         for (int i = 0; i < iNumDevices; i++) {
@@ -662,7 +725,9 @@ public class ServiceDatos extends Service {
             locManager.removeUpdates(locListener);
 
         try {
-            //fLog.close();
+            if (bLOGCurrent)
+                fOutCurrent.close();
+
             fOut.close();
             fLog.close();
             envioAsync.finalize();

@@ -59,6 +59,8 @@ public class Datos extends AppCompatActivity {
     boolean bSendServer;
     boolean bWebNavigation;
 
+    boolean bLogCurrent;
+
     boolean bTime;
     long lTime;
 
@@ -125,6 +127,8 @@ public class Datos extends AppCompatActivity {
 
         bTime = extras.getBoolean("bTime");
         lTime = extras.getLong("Time");
+
+        bLogCurrent = extras.getBoolean("LOGCurrent");
 
         iMaxInterval = extras.getInt("MaxInterval", 0);
         iMinInterval = extras.getInt("MinInterval", 0);
@@ -278,6 +282,7 @@ public class Datos extends AppCompatActivity {
         intentChkServicio.putExtra("Magnetometro", bMagnetometro);
         intentChkServicio.putExtra("Location", bLocation);
         intentChkServicio.putExtra("SendServer", bSendServer);
+        intentChkServicio.putExtra("LOGCurrent", bLogCurrent);
 
         intentChkServicio.putExtra("MaxInterval", (long) iMaxInterval);
         intentChkServicio.putExtra("MinInterval", (long) iMinInterval);
@@ -285,7 +290,7 @@ public class Datos extends AppCompatActivity {
         intentChkServicio.putExtra("Timeout", (long) iTimeout);
         intentChkServicio.putExtra("PeriodoMaxRes", (long) iPeriodoMaxRes);
         //intentChkServicio.putExtra("bTime", bTime);
-        //intentChkServicio.putExtra("Time", lTime);
+        intentChkServicio.putExtra("Time", lTime);
 
         startService(intentChkServicio);
     }

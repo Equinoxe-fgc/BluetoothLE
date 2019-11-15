@@ -51,6 +51,7 @@ public class Conexion extends AppCompatActivity {
     private CheckBox chkGPS;
     private CheckBox chkSendServer;
     private CheckBox chkTiempo;
+    private CheckBox chkLogCurrent;
     private TextView txtTiempo, txtMaxInterval, txtMinInterval, txtLatency, txtTimeout, txtPeriodoMaxRes;
     private CheckBox chkWebNavigation;
     private RecyclerView recyclerViewSensores;
@@ -72,6 +73,8 @@ public class Conexion extends AppCompatActivity {
         chkTiempo = findViewById(R.id.chkTiempo);
         txtTiempo = findViewById(R.id.txtTiempo);
         chkWebNavigation = findViewById(R.id.chkWebNavigation);
+
+        chkLogCurrent = findViewById(R.id.chkLogConsumoCorriente);
 
         txtMaxInterval = findViewById(R.id.txtMAX_INTERVAL);
         txtMinInterval = findViewById(R.id.txtMIN_INTERVAL);
@@ -270,6 +273,8 @@ public class Conexion extends AppCompatActivity {
             else if (sName.compareTo(getString(R.string.Magnetometer)) == 0)
                 intent.putExtra("Magnetometro", serviceInfo.isSelected());
         }
+
+        intent.putExtra("LOGCurrent", chkLogCurrent.isChecked());
 
         intent.putExtra("Location", chkGPS.isChecked());
         intent.putExtra("SendServer", chkSendServer.isChecked());

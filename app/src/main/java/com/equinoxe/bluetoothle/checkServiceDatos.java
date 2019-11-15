@@ -33,6 +33,7 @@ public class checkServiceDatos extends Service {
 
     boolean bLocation;
     boolean bSendServer;
+    boolean bLOGCurrent;
 
     boolean bTime;
     long lTime;
@@ -77,13 +78,15 @@ public class checkServiceDatos extends Service {
         intentServicio.putExtra("Location", bLocation);
         intentServicio.putExtra("SendServer", bSendServer);
 
+        intentServicio.putExtra("LOGCurrent", bLOGCurrent);
+
         intentServicio.putExtra("MaxInterval", iMaxInterval);
         intentServicio.putExtra("MinInterval", iMinInterval);
         intentServicio.putExtra("Latency", iLatency);
         intentServicio.putExtra("Timeout", iTimeout);
         intentServicio.putExtra("PeriodoMaxRes", iPeriodoMaxRes);
         //intentServicio.putExtra("bTime", bTime);
-        //intentServicio.putExtra("Time", lTime);
+        intentServicio.putExtra("Time", lTime);
 
         intentServicio.putExtra("Reinicio", false);
 
@@ -106,6 +109,8 @@ public class checkServiceDatos extends Service {
         bTemperatura = intent.getBooleanExtra("Temperatura", false);
         bLuz = intent.getBooleanExtra("Luz", false);
 
+        bLOGCurrent = intent.getBooleanExtra("LOGCurrent", false);
+
         bLocation = intent.getBooleanExtra("Location", false);
         bSendServer = intent.getBooleanExtra("SendServer", false);
 
@@ -116,7 +121,7 @@ public class checkServiceDatos extends Service {
         iPeriodoMaxRes = intent.getLongExtra("PeriodoMaxRes", 0);
 
         //bTime = intent.getBooleanExtra("bTime", false);
-        //lTime = intent.getLongExtra("Time", 0);
+        lTime = intent.getLongExtra("Time", 0);
 
         crearServicio();
 
