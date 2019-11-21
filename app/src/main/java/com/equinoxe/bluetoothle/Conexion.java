@@ -52,6 +52,7 @@ public class Conexion extends AppCompatActivity {
     private CheckBox chkSendServer;
     private CheckBox chkTiempo;
     private CheckBox chkLogCurrent;
+    private CheckBox chkScreenOn;
     private TextView txtTiempo, txtMaxInterval, txtMinInterval, txtLatency, txtTimeout, txtPeriodoMaxRes;
     private CheckBox chkWebNavigation;
     private RecyclerView recyclerViewSensores;
@@ -73,6 +74,7 @@ public class Conexion extends AppCompatActivity {
         chkTiempo = findViewById(R.id.chkTiempo);
         txtTiempo = findViewById(R.id.txtTiempo);
         chkWebNavigation = findViewById(R.id.chkWebNavigation);
+        chkScreenOn = findViewById(R.id.chkScreenOn);
 
         chkLogCurrent = findViewById(R.id.chkLogConsumoCorriente);
 
@@ -280,6 +282,8 @@ public class Conexion extends AppCompatActivity {
         intent.putExtra("SendServer", chkSendServer.isChecked());
         intent.putExtra("bTime",chkTiempo.isChecked());
         intent.putExtra("WebNavigation", chkWebNavigation.isChecked());
+        intent.putExtra("screenON", chkScreenOn.isChecked());
+
         if (!chkTiempo.isChecked())
             txtTiempo.setText("0");
         long lTime = 1000*Integer.valueOf(txtTiempo.getText().toString());

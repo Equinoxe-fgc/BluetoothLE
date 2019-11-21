@@ -58,6 +58,7 @@ public class Datos extends AppCompatActivity {
     boolean bLocation;
     boolean bSendServer;
     boolean bWebNavigation;
+    boolean bScreenON;
 
     boolean bLogCurrent;
 
@@ -135,12 +136,13 @@ public class Datos extends AppCompatActivity {
         iLatency = extras.getInt("Latency", 0);
         iTimeout = extras.getInt("Timeout", 0);
         iPeriodoMaxRes = extras.getInt("PeriodoMaxRes", 0);
+        bScreenON = extras.getBoolean("screenON", false);
 
-        if (bSendServer || bWebNavigation) {
+        if (bScreenON || bSendServer || bWebNavigation) {
             Window window = getWindow();
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-            if (bSendServer) {
+            if (bScreenON || bSendServer) {
                 WindowManager.LayoutParams layoutParams = window.getAttributes();
                 layoutParams.screenBrightness = 1f / 255f;
                 window.setAttributes(layoutParams);

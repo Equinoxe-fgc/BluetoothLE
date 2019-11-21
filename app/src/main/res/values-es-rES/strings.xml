@@ -40,7 +40,7 @@
     <string name="LOCATION_DISABLED">La localización está deshabilitada. Habilite el GPS y WiFi (o datos)</string>
     <string name="LOCATION_FAILED">Error de localización. Habilite el GPS y WiFi (o datos)</string>
     <string name="EnvioAservidor">Enviar datos a servidor</string>
-    <string name="CompileDate">Versión: 15/11/2019</string>
+    <string name="CompileDate">Versión: 21/11/2019</string>
     <string name="channel_name">CANAL_NOTIFICACION</string>
     <string name="channel_description">Canal para notificaciones</string>
     <string name="Tiempo">Tiempo (s)</string>
@@ -51,4 +51,5 @@
     <string name="ERROR_LATENCY">Parámetro Latency fuera de rango</string>
     <string name="ERROR_TIMEOUT">Parámetro Timeout fuera de rango</string>
     <string name="log_consumo_corriente">Log consumo corriente</string>
+    <string name="screenON">Pantalla encendida</string>
 </resources>
